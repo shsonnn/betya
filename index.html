@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#0b0d13" />
+    <meta
+      name="description"
+      content="6명이 주사위 두 개를 굴려 벌칙 받을 사람을 정하는 게임"
+    />
+    <title>오늘의 벌칙은?</title>
+    <link
+      rel="icon"
+      type="image/svg+xml"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='15' fill='%23ff4d67'/%3E%3Ccircle cx='20' cy='20' r='5' fill='white'/%3E%3Ccircle cx='44' cy='20' r='5' fill='white'/%3E%3Ccircle cx='32' cy='32' r='5' fill='white'/%3E%3Ccircle cx='20' cy='44' r='5' fill='white'/%3E%3Ccircle cx='44' cy='44' r='5' fill='white'/%3E%3C/svg%3E"
+    />
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <main class="game-shell" aria-labelledby="game-title">
+      <header class="game-header">
+        <p class="eyebrow">주사위 2개 · 끝자리 승부</p>
+        <h1 id="game-title">오늘의 벌칙은?</h1>
+        <p class="rule">두 주사위 합의 <strong>끝자리</strong>가 가장 작으면 당첨!</p>
+      </header>
+
+      <section class="setup" aria-label="게임 설정">
+        <span class="setup-label">인원</span>
+        <div class="stepper">
+          <button id="decrease-players" type="button" aria-label="인원 줄이기">−</button>
+          <strong id="player-count" aria-live="polite">6명</strong>
+          <button id="increase-players" type="button" aria-label="인원 늘리기">＋</button>
+        </div>
+        <span class="setup-help">이름을 눌러 수정</span>
+      </section>
+
+      <ol class="players" id="players" aria-label="참가자 진행 상황"></ol>
+
+      <section class="play-area" aria-live="polite">
+        <p class="turn-label" id="turn-label">1번 차례</p>
+        <div class="dice-stage" aria-label="주사위 결과">
+          <div class="die" id="die-one" aria-label="첫 번째 주사위: 1">
+            <span class="pip p1"></span><span class="pip p2"></span>
+            <span class="pip p3"></span><span class="pip p4"></span>
+            <span class="pip p5"></span><span class="pip p6"></span>
+            <span class="pip p7"></span>
+          </div>
+          <span class="plus" aria-hidden="true">+</span>
+          <div class="die die--accent" id="die-two" aria-label="두 번째 주사위: 1">
+            <span class="pip p1"></span><span class="pip p2"></span>
+            <span class="pip p3"></span><span class="pip p4"></span>
+            <span class="pip p5"></span><span class="pip p6"></span>
+            <span class="pip p7"></span>
+          </div>
+        </div>
+
+        <div class="score" id="score" hidden>
+          <span>합 <strong id="sum">2</strong></span>
+          <span class="score-arrow" aria-hidden="true">→</span>
+          <span>끝자리 <strong id="last-digit">2</strong></span>
+        </div>
+
+        <button class="roll-button" id="roll-button" type="button">
+          <span id="button-label">1번 굴리기</span>
+          <span class="button-die" aria-hidden="true">⚄</span>
+        </button>
+      </section>
+
+      <p class="hint" id="hint">버튼을 눌러 두 주사위를 한 번에 굴려요</p>
+    </main>
+
+    <script src="./script.js"></script>
+  </body>
+</html>
