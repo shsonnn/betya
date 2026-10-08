@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#f8f7ff" />
+    <meta
+      name="description"
+      content="인원과 이름을 정하고 2D 주사위 두 개를 굴려 벌칙 받을 사람을 정하는 게임"
+    />
+    <title>오늘의 벌칙은?</title>
+    <link
+      rel="icon"
+      type="image/svg+xml"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='15' fill='%23ff4d67'/%3E%3Ccircle cx='20' cy='20' r='5' fill='white'/%3E%3Ccircle cx='44' cy='20' r='5' fill='white'/%3E%3Ccircle cx='32' cy='32' r='5' fill='white'/%3E%3Ccircle cx='20' cy='44' r='5' fill='white'/%3E%3Ccircle cx='44' cy='44' r='5' fill='white'/%3E%3C/svg%3E"
+    />
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <main class="game-shell" aria-labelledby="game-title">
+      <header class="game-header">
+        <h1 id="game-title">잘~ 먹겠습니다! 😋</h1>
+        <p class="rule">두 수를 합친 숫자의 끝자리가 가장 적으면 당첨</p>
+      </header>
+
+      <section class="setup" aria-label="게임 설정">
+        <span class="setup-label">인원</span>
+        <div class="stepper">
+          <button id="decrease-players" type="button" aria-label="인원 줄이기">−</button>
+          <strong id="player-count" aria-live="polite">6명</strong>
+          <button id="increase-players" type="button" aria-label="인원 늘리기">＋</button>
+        </div>
+        <span class="setup-help">이름을 눌러 수정할 수 있어요</span>
+      </section>
+
+      <ol class="players" id="players" aria-label="참가자 진행 상황"></ol>
+
+      <section class="play-area" aria-live="polite">
+        <p class="turn-label" id="turn-label">1번 차례</p>
+
+        <div class="dice-stage" aria-label="주사위 결과">
+          <span class="dice-floor-shadow" aria-hidden="true"></span>
+          <div class="die-rig die-rig--one">
+            <div class="die-cube" id="die-one" role="img" aria-label="첫 번째 주사위: 1"></div>
+          </div>
+          <div class="die-rig die-rig--two">
+            <div class="die-cube" id="die-two" role="img" aria-label="두 번째 주사위: 1"></div>
+          </div>
+        </div>
+
+        <button class="roll-button" id="roll-button" type="button">
+          <span id="button-label">굴리기</span>
+        </button>
+      </section>
+
+      <p class="hint" id="hint">1번 차례 · 슬롯이 멈춘 점의 개수가 결과예요</p>
+    </main>
+
+    <script src="./script.js"></script>
+  </body>
+</html>
