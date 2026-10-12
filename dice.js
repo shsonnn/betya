@@ -225,6 +225,5 @@ rollButton.addEventListener("click", rollDice);
 decreasePlayersButton.addEventListener("click", () => changePlayerCount(-1));
 increasePlayersButton.addEventListener("click", () => changePlayerCount(1));
 homeButton.addEventListener("click", () => {
-  const usesStaticFilePath = window.location.protocol === "file:" || ["localhost", "127.0.0.1"].includes(window.location.hostname);
-  window.location.replace(usesStaticFilePath ? "./index.html" : "./");
+  window.BetyaRoom?.leave();
 });

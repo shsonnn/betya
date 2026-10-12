@@ -11,13 +11,12 @@ const state = {
 const diceFaces = ["⚀", "⚁", "⚂", "⚃", "⚄", "⚅"];
 const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-brand.addEventListener("click", () => navigate("home"));
+brand.addEventListener("click", () => window.BetyaRoom?.leave());
 window.addEventListener("hashchange", renderRoute);
 
 function navigate(route) {
   if (route === "dice") {
-    const usesStaticFilePath = window.location.protocol === "file:" || ["localhost", "127.0.0.1"].includes(window.location.hostname);
-    window.location.href = usesStaticFilePath ? "./dice.html" : "./dice";
+    window.location.href = "./dice.html";
     return;
   }
   const next = route === "home" ? "" : `#${route}`;
@@ -30,6 +29,7 @@ function currentRoute() {
 }
 
 function renderRoute() {
+  if (!window.BetyaRoom?.hasSession()) return;
   const route = currentRoute();
   document.body.dataset.route = route;
   if (route === "pick") renderPick();
@@ -51,14 +51,14 @@ function pageShell(theme, title, subtitle, setupMarkup, resultMarkup) {
     <section class="game-page theme-${theme}">
       <div class="game-heading">
         <div class="game-heading__copy"><h1>${title}</h1><p>${subtitle}</p></div>
-        <button class="back-button" type="button" aria-label="게임 선택 화면으로 돌아가기" data-back>게임 고르기</button>
+        <button class="back-button" type="button" aria-label="방 나가기" data-back>방 나가기</button>
       </div>
       <div class="workspace">
         <section class="panel">${setupMarkup}</section>
         <section class="panel result-panel">${resultMarkup}</section>
       </div>
     </section>`;
-  document.querySelector("[data-back]").addEventListener("click", () => navigate("home"));
+  document.querySelector("[data-back]").addEventListener("click", () => window.BetyaRoom?.leave());
 }
 
 function entryMarkup({ title, helper, placeholder, type, items, extra = "", buttonText = "추가" }) {
@@ -337,4 +337,4 @@ function escapeHtml(value) {
   return String(value).replace(/[&<>'"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" })[char]);
 }
 
-renderRoute();
+if (window.BetyaRoom?.hasSession()) renderRoute();
