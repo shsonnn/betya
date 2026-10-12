@@ -29,6 +29,8 @@ pnpm run dev
 
 정적 파일은 Workers Static Assets로, 방·참여자·채팅은 Durable Objects와 WebSocket으로 동작합니다.
 
+프로덕션 사이트: <https://betya.sonsahyeon.workers.dev>
+
 검증과 배포 명령:
 
 ```bash
