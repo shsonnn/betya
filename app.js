@@ -33,6 +33,8 @@ function renderRoute() {
   if (!window.BetyaRoom?.hasSession()) return;
   const route = currentRoute();
   document.body.dataset.route = route;
+  if (route === "home") window.BetyaRoom?.hideLocalReactions?.();
+  else window.BetyaRoom?.showLocalReactions?.();
   if (route === "pick") renderPick();
   else if (route === "team") renderTeam();
   else if (route === "dice") renderDice();
@@ -41,6 +43,7 @@ function renderRoute() {
 }
 
 function renderHome() {
+  window.BetyaRoom?.hideLocalReactions?.();
   delete document.body.dataset.lobby;
   document.body.dataset.route = "home";
   document.querySelector(".site-header").hidden = false;
@@ -58,7 +61,7 @@ function pageShell(theme, title, subtitle, setupMarkup, resultMarkup) {
     <section class="game-page theme-${theme}">
       <div class="game-heading">
         <div class="game-heading__copy"><h1>${title}</h1><p>${subtitle}</p></div>
-        <button class="back-button" type="button" aria-label="방 나가기" data-back>방 나가기</button>
+        <button class="back-button" type="button" aria-label="게임 선택으로 돌아가기" data-back>게임 선택</button>
       </div>
       <div class="workspace">
         <section class="panel">${setupMarkup}</section>

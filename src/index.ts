@@ -1,5 +1,8 @@
 import { DurableObject } from "cloudflare:workers";
 
+// 방 만들기·입장 기능은 요청에 따라 일시 중단했습니다. 정식 재개 전까지 API를 노출하지 않습니다.
+const ROOM_FEATURE_ENABLED = false;
+
 type GameType = "dice" | "pick" | "team";
 type MemberRole = "host" | "guest";
 
@@ -270,6 +273,10 @@ export class GameRoom extends DurableObject<Env> {
 async function handleApi(request: Request, env: Env): Promise<Response> {
   const url = new URL(request.url);
   const parts = url.pathname.split("/").filter(Boolean);
+
+  if (!ROOM_FEATURE_ENABLED) {
+    return json({ error: "방 기능은 현재 비활성화되어 있습니다." }, { status: 404 });
+  }
 
   if (request.method === "POST" && url.pathname === "/api/rooms") {
     const body = await readJson(request);

@@ -1,5 +1,8 @@
 (() => {
+  // 방 만들기·입장 기능은 요청에 따라 일시 중단했습니다. 다시 사용할 때만 true로 전환합니다.
+  const ROOM_FEATURE_ENABLED = false;
   const STORAGE_KEY = "betya.room.session";
+  const MEMO_STORAGE_KEY = "betya.local.emoji-memo";
   const GAME_PATHS = {
     dice: "./dice.html",
     pick: "./index.html#pick",
@@ -37,7 +40,7 @@
   }
 
   function hasSession() {
-    return Boolean(session);
+    return !ROOM_FEATURE_ENABLED || Boolean(session);
   }
 
   function saveSession(value) {
@@ -48,7 +51,7 @@
   function leave() {
     leaving = true;
     window.clearTimeout(reconnectTimer);
-    if (socket && socket.readyState < WebSocket.CLOSING) socket.close(1000, "left room");
+    if (ROOM_FEATURE_ENABLED && socket && socket.readyState < WebSocket.CLOSING) socket.close(1000, "left room");
     sessionStorage.removeItem(STORAGE_KEY);
     window.location.replace("./index.html");
   }
@@ -74,6 +77,10 @@
   }
 
   function renderLobby(gameType) {
+    if (!ROOM_FEATURE_ENABLED) {
+      goToGame(gameType);
+      return;
+    }
     if (!GAME_LABELS[gameType]) return;
     selectedGame = gameType;
     const [gameTitle, gameCopy] = GAME_LABELS[gameType];
@@ -232,6 +239,51 @@
     }));
   }
 
+  function emojiControlsMarkup() {
+    return `
+      <div class="emoji-float">
+        <div class="emoji-picker" data-emoji-picker hidden>
+          <div class="emoji-picker__head"><strong>하면해 이모티콘</strong><button class="emoji-picker__close" type="button" aria-label="이모티콘 창 닫기" title="닫기" data-emoji-close>×</button></div>
+          <div class="emoji-grid">${EMOJIS.map(([key, label]) => `<button type="button" title="${label}" aria-label="${label}" data-tooltip="${label}" data-emoji-key="${key}"><img src="./assets/emojis/${key}.png" alt="" /></button>`).join("")}</div>
+          <label class="emoji-memo"><span>간단 메모</span><input type="text" maxlength="100" autocomplete="off" placeholder="잊지 않을 내용을 적어두세요" data-emoji-memo /></label>
+        </div>
+        <button class="emoji-float__button" type="button" aria-label="이모티콘 열기" aria-expanded="false" title="하면해 이모티콘" data-emoji>☺</button>
+      </div>
+      <div class="emoji-stage" data-emoji-stage aria-live="polite" aria-atomic="true"></div>
+      <div class="room-toast" data-room-toast role="status" aria-live="polite"></div>`;
+  }
+
+  function bindEmojiControls() {
+    document.querySelector("[data-emoji]")?.addEventListener("click", toggleEmojiPicker);
+    document.querySelector("[data-emoji-close]")?.addEventListener("click", () => setEmojiPicker(false));
+    document.querySelectorAll("[data-emoji-key]").forEach((button) => button.addEventListener("click", (event) => {
+      event.stopPropagation();
+      sendEmoji(button.dataset.emojiKey);
+      setEmojiPicker(true);
+    }));
+    const memo = document.querySelector("[data-emoji-memo]");
+    if (memo) {
+      memo.value = sessionStorage.getItem(MEMO_STORAGE_KEY) || "";
+      memo.addEventListener("input", () => sessionStorage.setItem(MEMO_STORAGE_KEY, memo.value));
+    }
+    preloadEmojis();
+  }
+
+  function mountLocalReactions() {
+    if (ROOM_FEATURE_ENABLED || document.querySelector(".emoji-float")) return;
+    document.body.insertAdjacentHTML("beforeend", emojiControlsMarkup());
+    bindEmojiControls();
+  }
+
+  function unmountLocalReactions() {
+    if (ROOM_FEATURE_ENABLED) return;
+    document.querySelector(".emoji-float")?.remove();
+    document.querySelector("[data-emoji-stage]")?.remove();
+    document.querySelector("[data-room-toast]")?.remove();
+    emojiQueue = [];
+    emojiPlaying = false;
+  }
+
   function mountRoomChrome() {
     if (document.querySelector(".room-bar")) return;
     document.body.classList.add("room-active");
@@ -247,25 +299,10 @@
         </div>
         <button class="room-leave" type="button" data-room-leave>나가기</button>
       </header>
-      <div class="emoji-float">
-        <div class="emoji-picker" data-emoji-picker hidden>
-          <div class="emoji-picker__head"><strong>하면해 이모티콘</strong><button class="emoji-picker__close" type="button" aria-label="이모티콘 창 닫기" title="닫기" data-emoji-close>×</button></div>
-          <div class="emoji-grid">${EMOJIS.map(([key, label]) => `<button type="button" title="${label}" aria-label="${label}" data-tooltip="${label}" data-emoji-key="${key}"><img src="./assets/emojis/${key}.png" alt="" /></button>`).join("")}</div>
-        </div>
-        <button class="emoji-float__button" type="button" aria-label="이모티콘 열기" aria-expanded="false" title="하면해 이모티콘" data-emoji>☺</button>
-      </div>
-      <div class="emoji-stage" data-emoji-stage aria-live="polite" aria-atomic="true"></div>
-      <div class="room-toast" data-room-toast role="status" aria-live="polite"></div>`);
+      ${emojiControlsMarkup()}`);
     document.querySelector("[data-room-leave]").addEventListener("click", leave);
     document.querySelector("[data-copy-code]").addEventListener("click", copyRoomCode);
-    document.querySelector("[data-emoji]").addEventListener("click", toggleEmojiPicker);
-    document.querySelector("[data-emoji-close]").addEventListener("click", () => setEmojiPicker(false));
-    document.querySelectorAll("[data-emoji-key]").forEach((button) => button.addEventListener("click", (event) => {
-      event.stopPropagation();
-      sendEmoji(button.dataset.emojiKey);
-      setEmojiPicker(true);
-    }));
-    preloadEmojis();
+    bindEmojiControls();
   }
 
   async function copyRoomCode(event) {
@@ -340,8 +377,8 @@
   function sendEmoji(key) {
     setEmojiPicker(true);
     if (!EMOJIS.some(([emojiKey]) => emojiKey === key)) return;
-    queueEmoji({ type: "emoji", key, name: session.name, role: session.role });
-    if (socket?.readyState === WebSocket.OPEN) {
+    queueEmoji({ type: "emoji", key, name: session?.name || "나", role: session?.role || "local" });
+    if (ROOM_FEATURE_ENABLED && socket?.readyState === WebSocket.OPEN) {
       socket.send(JSON.stringify({ type: "emoji", key }));
     }
   }
@@ -401,10 +438,23 @@
     window.setTimeout(() => toast.classList.remove("is-visible"), 1800);
   }
 
-  window.BetyaRoom = { hasSession, leave, openLobby: renderLobby, session: () => session };
+  window.BetyaRoom = {
+    hasSession,
+    leave,
+    openLobby: renderLobby,
+    session: () => session,
+    showLocalReactions: mountLocalReactions,
+    hideLocalReactions: unmountLocalReactions,
+  };
+
+  const onDicePage = window.location.pathname.endsWith("dice.html") || window.location.pathname.endsWith("/dice");
+  if (!ROOM_FEATURE_ENABLED) {
+    sessionStorage.removeItem(STORAGE_KEY);
+    if (onDicePage) mountLocalReactions();
+    return;
+  }
 
   if (!session) {
-    const onDicePage = window.location.pathname.endsWith("dice.html") || window.location.pathname.endsWith("/dice");
     if (onDicePage) window.location.replace("./index.html");
     return;
   }
