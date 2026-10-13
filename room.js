@@ -6,9 +6,9 @@
     team: "./index.html#team",
   };
   const EMOJIS = [
-    ["shotgun", "샷건"], ["not-me", "나만 아니면 돼"], ["winner", "이겨서 기분 좋음"],
-    ["despair", "절망"], ["drool", "군침이 싹"], ["minus-100m", "-1억"],
-    ["scream", "끼야호"], ["huh", "엥?"], ["oh", "오~"], ["close", "까비"],
+    ["scream", "끼얏호"], ["not-me", "나만 아니면 돼"], ["winner", "이겨서 기분 좋음"],
+    ["oh", "오~"], ["drool", "군침이 싹"], ["minus-100m", "-1억"],
+    ["shotgun", "샷건"], ["huh", "엥?"], ["despair", "절망"], ["close", "까비"],
   ];
   const GAME_LABELS = {
     dice: ["0의 주사위", "두 번 굴려 더한 값이 가장 낮은 사람이 쏘기~!"],
