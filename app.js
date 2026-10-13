@@ -105,10 +105,10 @@ function bindEntry(type, rerender) {
   };
   document.querySelector("[data-entry-add]").addEventListener("click", add);
   input.addEventListener("keydown", (event) => {
-    if (event.key === "Enter") {
-      event.preventDefault();
-      add();
-    }
+    if (event.key === "Enter" && !event.isComposing) event.preventDefault();
+  });
+  input.addEventListener("keyup", (event) => {
+    if (event.key === "Enter" && !event.isComposing) add();
   });
   document.querySelectorAll(`[data-remove-${type}]`).forEach((button) => {
     button.addEventListener("click", () => {
