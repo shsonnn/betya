@@ -127,7 +127,7 @@ body.room-active .home-link, body.room-active .back-button { display: none !impo
 .emoji-memo input { width: 100%; height: 40px; padding: 0 11px; border: 1px solid #e1e3eb; border-radius: 10px; color: #2e313d; background: #fafafe; font-size: 12px; }
 .emoji-memo input::placeholder { color: #aaaeba; }.emoji-memo input:focus { border-color: var(--room-blue); outline: 3px solid rgba(52,96,255,.1); }
 .emoji-stage { position: fixed; z-index: 125; inset: 0; display: grid; place-items: center; pointer-events: none; opacity: 0; }
-.emoji-stage img { width: clamp(210px, 28vw, 360px); max-height: min(56vh, 480px); object-fit: contain; filter: drop-shadow(0 18px 22px rgba(24,27,43,.18)); }
+.emoji-stage img { width: clamp(280px, 36vw, 480px); max-height: min(70vh, 620px); object-fit: contain; filter: drop-shadow(0 20px 26px rgba(24,27,43,.2)); }
 .emoji-stage.is-playing { animation: emoji-pop 2.6s both; }
 @keyframes emoji-pop {
   0% { opacity: 0; transform: scale(.82); }

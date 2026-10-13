@@ -24,8 +24,8 @@
   let roomState = null;
   let reconnectTimer = null;
   let leaving = false;
-  let emojiQueue = [];
-  let emojiPlaying = false;
+  let emojiPlaybackId = 0;
+  let emojiTimer = null;
   let selectedGame = null;
   const emojiImageCache = new Map();
 
@@ -280,8 +280,9 @@
     document.querySelector(".emoji-float")?.remove();
     document.querySelector("[data-emoji-stage]")?.remove();
     document.querySelector("[data-room-toast]")?.remove();
-    emojiQueue = [];
-    emojiPlaying = false;
+    emojiPlaybackId += 1;
+    window.clearTimeout(emojiTimer);
+    emojiTimer = null;
   }
 
   function mountRoomChrome() {
@@ -385,8 +386,10 @@
 
   function queueEmoji(message) {
     if (!EMOJIS.some(([key]) => key === message.key)) return;
-    emojiQueue.push(message);
-    playNextEmoji();
+    emojiPlaybackId += 1;
+    window.clearTimeout(emojiTimer);
+    emojiTimer = null;
+    playEmojiNow(message, emojiPlaybackId);
   }
 
   function preloadEmojis() {
@@ -399,34 +402,27 @@
     });
   }
 
-  async function playNextEmoji() {
-    if (emojiPlaying || emojiQueue.length === 0) return;
-    const message = emojiQueue.shift();
+  async function playEmojiNow(message, playbackId) {
     const emoji = EMOJIS.find(([key]) => key === message.key);
     const stage = document.querySelector("[data-emoji-stage]");
     if (!emoji || !stage) return;
-    emojiPlaying = true;
     const image = emojiImageCache.get(message.key) || new Image();
     image.decoding = "async";
     image.src = `./assets/emojis/${message.key}.png`;
     emojiImageCache.set(message.key, image);
     try { await image.decode(); } catch { /* The load event can still make the image usable. */ }
-    if (!document.body.contains(stage)) {
-      emojiPlaying = false;
-      playNextEmoji();
-      return;
-    }
+    if (playbackId !== emojiPlaybackId || !document.body.contains(stage)) return;
     stage.replaceChildren();
     image.alt = `${message.name}님의 ${emoji[1]} 이모티콘`;
     stage.append(image);
     stage.classList.remove("is-playing");
     void stage.offsetWidth;
     stage.classList.add("is-playing");
-    window.setTimeout(() => {
+    emojiTimer = window.setTimeout(() => {
+      if (playbackId !== emojiPlaybackId) return;
       stage.classList.remove("is-playing");
       stage.replaceChildren();
-      emojiPlaying = false;
-      playNextEmoji();
+      emojiTimer = null;
     }, 2600);
   }
 
