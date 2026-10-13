@@ -13,6 +13,7 @@ const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matc
 
 brand.addEventListener("click", () => window.BetyaRoom?.leave());
 window.addEventListener("hashchange", renderRoute);
+document.addEventListener("betya-show-home", renderHome);
 
 function navigate(route) {
   if (route === "dice") {
@@ -40,9 +41,15 @@ function renderRoute() {
 }
 
 function renderHome() {
+  delete document.body.dataset.lobby;
+  document.body.dataset.route = "home";
+  document.querySelector(".site-header").hidden = false;
   app.replaceChildren(homeTemplate.content.cloneNode(true));
   document.querySelectorAll(".game-card[data-route]").forEach((card) => {
-    card.addEventListener("click", () => navigate(card.dataset.route));
+    card.addEventListener("click", () => {
+      if (window.BetyaRoom?.hasSession()) navigate(card.dataset.route);
+      else window.BetyaRoom?.openLobby(card.dataset.route);
+    });
   });
 }
 
@@ -338,3 +345,4 @@ function escapeHtml(value) {
 }
 
 if (window.BetyaRoom?.hasSession()) renderRoute();
+else renderHome();
