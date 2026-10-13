@@ -27,7 +27,6 @@ const decoder = new TextDecoder();
 const ROOM_CODE_ALPHABET = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ";
 const MAX_NAME_LENGTH = 12;
 const MAX_ROOM_NAME_LENGTH = 24;
-const MAX_CHAT_LENGTH = 500;
 const SESSION_TTL_MS = 8 * 60 * 60 * 1000;
 const EMOJI_KEYS = new Set(["shotgun", "not-me", "winner", "despair", "drool", "minus-100m", "scream", "huh", "oh", "close"]);
 
@@ -187,14 +186,8 @@ export class GameRoom extends DurableObject<Env> {
     }
     if (!event || typeof event !== "object" || Array.isArray(event)) return;
     const data = event as Record<string, unknown>;
-    if (data.type === "chat") {
-      const text = normalizeText(data.text, MAX_CHAT_LENGTH);
-      if (!text) return;
-      this.broadcast({ type: "chat", name: attachment.name, role: attachment.role, text, sentAt: Date.now() });
-      return;
-    }
     if (data.type === "emoji" && typeof data.key === "string" && EMOJI_KEYS.has(data.key)) {
-      this.broadcast({ type: "emoji", name: attachment.name, role: attachment.role, key: data.key, sentAt: Date.now() });
+      this.broadcast({ type: "emoji", name: attachment.name, role: attachment.role, key: data.key, sentAt: Date.now() }, socket);
     }
   }
 
@@ -261,9 +254,10 @@ export class GameRoom extends DurableObject<Env> {
     this.broadcast({ type: "presence", room: this.publicRoom(config), members });
   }
 
-  private broadcast(payload: unknown): void {
+  private broadcast(payload: unknown, excludedSocket?: WebSocket): void {
     const message = JSON.stringify(payload);
     for (const socket of this.ctx.getWebSockets()) {
+      if (socket === excludedSocket) continue;
       try {
         socket.send(message);
       } catch {

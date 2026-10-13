@@ -24,6 +24,7 @@
   let emojiQueue = [];
   let emojiPlaying = false;
   let selectedGame = null;
+  const emojiImageCache = new Map();
 
   function readSession() {
     try {
@@ -264,6 +265,7 @@
       sendEmoji(button.dataset.emojiKey);
       setEmojiPicker(true);
     }));
+    preloadEmojis();
   }
 
   async function copyRoomCode(event) {
@@ -337,8 +339,11 @@
 
   function sendEmoji(key) {
     setEmojiPicker(true);
-    if (!EMOJIS.some(([emojiKey]) => emojiKey === key) || socket?.readyState !== WebSocket.OPEN) return;
-    socket.send(JSON.stringify({ type: "emoji", key }));
+    if (!EMOJIS.some(([emojiKey]) => emojiKey === key)) return;
+    queueEmoji({ type: "emoji", key, name: session.name, role: session.role });
+    if (socket?.readyState === WebSocket.OPEN) {
+      socket.send(JSON.stringify({ type: "emoji", key }));
+    }
   }
 
   function queueEmoji(message) {
@@ -347,16 +352,34 @@
     playNextEmoji();
   }
 
-  function playNextEmoji() {
+  function preloadEmojis() {
+    EMOJIS.forEach(([key]) => {
+      if (emojiImageCache.has(key)) return;
+      const image = new Image();
+      image.decoding = "async";
+      image.src = `./assets/emojis/${key}.png`;
+      emojiImageCache.set(key, image);
+    });
+  }
+
+  async function playNextEmoji() {
     if (emojiPlaying || emojiQueue.length === 0) return;
     const message = emojiQueue.shift();
     const emoji = EMOJIS.find(([key]) => key === message.key);
     const stage = document.querySelector("[data-emoji-stage]");
     if (!emoji || !stage) return;
     emojiPlaying = true;
-    stage.replaceChildren();
-    const image = document.createElement("img");
+    const image = emojiImageCache.get(message.key) || new Image();
+    image.decoding = "async";
     image.src = `./assets/emojis/${message.key}.png`;
+    emojiImageCache.set(message.key, image);
+    try { await image.decode(); } catch { /* The load event can still make the image usable. */ }
+    if (!document.body.contains(stage)) {
+      emojiPlaying = false;
+      playNextEmoji();
+      return;
+    }
+    stage.replaceChildren();
     image.alt = `${message.name}님의 ${emoji[1]} 이모티콘`;
     stage.append(image);
     stage.classList.remove("is-playing");
