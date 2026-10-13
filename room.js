@@ -259,7 +259,11 @@
     document.querySelector("[data-copy-code]").addEventListener("click", copyRoomCode);
     document.querySelector("[data-emoji]").addEventListener("click", toggleEmojiPicker);
     document.querySelector("[data-emoji-close]").addEventListener("click", () => setEmojiPicker(false));
-    document.querySelectorAll("[data-emoji-key]").forEach((button) => button.addEventListener("click", () => sendEmoji(button.dataset.emojiKey)));
+    document.querySelectorAll("[data-emoji-key]").forEach((button) => button.addEventListener("click", (event) => {
+      event.stopPropagation();
+      sendEmoji(button.dataset.emojiKey);
+      setEmojiPicker(true);
+    }));
   }
 
   async function copyRoomCode(event) {
@@ -332,6 +336,7 @@
   }
 
   function sendEmoji(key) {
+    setEmojiPicker(true);
     if (!EMOJIS.some(([emojiKey]) => emojiKey === key) || socket?.readyState !== WebSocket.OPEN) return;
     socket.send(JSON.stringify({ type: "emoji", key }));
   }
