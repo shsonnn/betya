@@ -38,3 +38,7 @@ pnpm run typecheck
 pnpm run build
 pnpm run deploy
 ```
+
+## 라이선스
+
+이 프로젝트는 [MIT License](./LICENSE)로 배포됩니다.
