@@ -1,0 +1,81 @@
+@font-face {
+  font-family: "MemomentKkukkukk";
+  src: url("./assets/fonts/MemomentKkukkukk.ttf") format("truetype");
+  font-weight: 400;
+  font-display: swap;
+}
+.room-dialog.room-dialog {
+  position: fixed;
+  box-sizing: border-box;
+  width: min(460px, calc(100vw - 32px));
+  height: 620px;
+  max-height: calc(100svh - 32px);
+  margin: auto;
+  padding: 28px 32px;
+  border: 0;
+  border-radius: 0;
+  overflow: visible;
+  background: transparent;
+  box-shadow: none;
+  color: #393b47;
+  font: 400 15px/1.3 "MemomentKkukkukk", sans-serif;
+  letter-spacing: -.02em;
+  gap: 20px;
+}
+.room-dialog.room-dialog::before {
+  content: "";
+  position: absolute;
+  inset: -12px;
+  z-index: -1;
+  pointer-events: none;
+  background: url("./assets/modal/dialog.svg") center / 100% 100% no-repeat;
+}
+.room-dialog.room-dialog .room-dialog-heading { height: 32px; margin: 0; gap: 16px; }
+.room-dialog.room-dialog .room-dialog-heading h2 { font: 700 30px/1.3 "KEDU Home", sans-serif; }
+.room-dialog-title-art { display: block; width: 170px; height: 29.3275px; }
+.room-dialog.room-dialog .room-dialog-close { position: relative; flex: 0 0 32px; width: 32px; height: 32px; padding: 0; border: 0; border-radius: 0; background: transparent; }
+.room-dialog-close img { position: absolute; top: -9.04px; left: -8.944px; max-width: none; }
+.room-dialog.room-dialog .room-form:not([hidden]) { padding: 0; gap: 20px; overflow-y: auto; overflow-x: hidden; }
+.room-dialog.room-dialog .room-form > label { display: flex; flex-direction: column; flex: none; height: 78px; margin: 0; gap: 9px; }
+.room-dialog.room-dialog .room-form > label[hidden] { display: none; }
+.room-dialog.room-dialog .room-form label > span,
+.room-dialog.room-dialog .room-form legend { font: inherit; color: #393b47; letter-spacing: -.02em; }
+.room-dialog.room-dialog .room-form > label > span { height: 17px; flex: none; }
+.room-dialog.room-dialog .room-form small { font: inherit; color: #7f8394; }
+.room-dialog.room-dialog .room-form input:not([type="radio"]) {
+  flex: none; width: 100%; height: 44px; min-height: 44px; padding: 0 16px;
+  border: 0; border-radius: 8px; box-shadow: none;
+  background: url("./assets/modal/name-input.svg") center / 100% 100% no-repeat;
+  color: #393b47; font: 400 16px/1.3 "MemomentKkukkukk", sans-serif; letter-spacing: -.02em;
+}
+.room-dialog.room-dialog input[name="roomName"] { background-image: url("./assets/modal/room-input.svg"); }
+.room-dialog.room-dialog .room-form input::placeholder { color: #a6a9ba; opacity: 1; }
+.room-dialog.room-dialog .privacy-fieldset { flex: none; margin: 0; }
+.room-dialog.room-dialog .privacy-fieldset legend { padding: 0; margin: 0 0 9px; }
+.room-dialog.room-dialog .segmented-control { height: 46px; gap: 8px; }
+.room-dialog.room-dialog .segmented-control span { height: 44px; min-height: 44px; padding: 0; border: 0; border-radius: 8px; background: url("./assets/modal/private.svg") center / 100% 100% no-repeat; color: #a6a9ba; font: 400 18px/1.3 "MemomentKkukkukk", sans-serif; }
+.room-dialog.room-dialog .segmented-control input:checked + span { background-image: url("./assets/modal/public.svg"); color: #343642; box-shadow: none; }
+.room-dialog-actions { display: grid; grid-template-columns: minmax(0, 260fr) minmax(0, 128fr); gap: 8px; margin-top: auto; flex: none; }
+.room-dialog.room-dialog .lobby-submit,
+.room-dialog.room-dialog .solo-button { width: 100%; height: 50px; min-height: 50px; margin: 0; padding: 0 4px; border: 0; border-radius: 8px; box-shadow: none; background: url("./assets/modal/primary.svg") center / 100% 100% no-repeat; color: white; font: 400 20px/1.3 "MemomentKkukkukk", sans-serif; letter-spacing: -.02em; cursor: pointer; }
+.room-dialog.room-dialog .solo-button { background-image: url("./assets/modal/solo.svg"); color: #3e62ff; }
+/* Stretch the exported artwork as a border image without SVG letterboxing or clipping. */
+.room-dialog.room-dialog .room-form input:not([type="radio"]),
+.room-dialog.room-dialog .segmented-control span,
+.room-dialog.room-dialog .solo-button,
+.room-dialog.room-dialog .lobby-submit { background: transparent; border-image: var(--control-art) 0 fill / 0 / 0 stretch; }
+.room-dialog.room-dialog .room-form input:not([type="radio"]) { --control-art: url("./assets/modal/name-input.svg"); }
+.room-dialog.room-dialog input[name="roomName"] { --control-art: url("./assets/modal/room-input.svg"); }
+.room-dialog.room-dialog .segmented-control span { --control-art: url("./assets/modal/private.svg"); }
+.room-dialog.room-dialog .segmented-control input:checked + span { --control-art: url("./assets/modal/public.svg"); background: transparent; }
+.room-dialog.room-dialog .lobby-submit { --control-art: url("./assets/modal/primary.svg"); }
+.room-dialog.room-dialog .solo-button { --control-art: url("./assets/modal/solo.svg"); }
+.room-dialog.room-dialog .lobby-submit:hover { transform: none; filter: brightness(.96); box-shadow: none; }
+.room-dialog.room-dialog .form-error:empty { display: none; }
+.room-dialog.room-dialog .form-error { flex: none; margin: 0; font: inherit; color: #d83d49; }
+.room-dialog.room-dialog .form-hint { margin: 0; font: inherit; color: #7f8394; }
+.room-dialog.room-dialog [data-room-form="join"] > .lobby-submit { margin-top: auto; flex: none; }
+@media (max-width: 420px) {
+  .room-dialog.room-dialog { padding: 28px 20px; }
+  .room-dialog.room-dialog .lobby-submit, .room-dialog.room-dialog .solo-button { font-size: 17px; }
+}

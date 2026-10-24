@@ -73,7 +73,7 @@
   }
 
   function hasSession() {
-    return Boolean(session);
+    return Boolean(session) || new URLSearchParams(location.search).get("solo") === "1";
   }
 
   function saveSession(value) {
@@ -154,13 +154,13 @@
     dialog.dataset.mode = invite ? "join" : mode;
     dialog.innerHTML = `
       <div class="room-dialog-heading">
-        <h2 id="room-dialog-title">${dialog.dataset.mode === "join" ? "방 입장하기" : gameNames[gameType]}</h2>
-        <button class="room-dialog-close" type="button" aria-label="게임 선택으로 돌아가기">×</button>
+        <h2 id="room-dialog-title">${dialog.dataset.mode !== "join" && gameType === "pick" ? '<img class="room-dialog-title-art" src="./assets/modal/pick-title.svg" alt="아무나 걸려라" />' : dialog.dataset.mode === "join" ? "방 입장하기" : gameNames[gameType]}</h2>
+        <button class="room-dialog-close" type="button" aria-label="게임 선택으로 돌아가기"><img src="./assets/modal/close.svg" alt="" /></button>
       </div>
       <div class="room-lobby">
         <section class="lobby-card" aria-label="방 시작하기">
           <form class="room-form" data-room-form="create" ${dialog.dataset.mode === "join" ? "hidden" : ""}>
-            <label><span>내 이름 <small>방장</small></span><input name="hostName" maxlength="12" autocomplete="off" placeholder="이름을 입력해주세요" required /></label>
+            <label><span>내 이름</span><input name="hostName" maxlength="12" autocomplete="off" placeholder="이름을 입력해주세요" required /></label>
             <label><span>방 이름</span><input name="roomName" maxlength="24" autocomplete="off" placeholder="예: 오늘 저녁은 누가 쏠까?" required /></label>
             <fieldset class="privacy-fieldset">
               <legend>방 공개 설정</legend>
@@ -171,7 +171,7 @@
             </fieldset>
             <label class="password-field" data-create-password hidden><span>비밀번호</span><input name="password" type="password" minlength="4" maxlength="64" autocomplete="new-password" placeholder="4자 이상 입력해주세요" /></label>
             <p class="form-error" role="alert" data-form-error></p>
-            <button class="lobby-submit" type="submit">방 만들고 시작하기</button>
+            <div class="room-dialog-actions"><button class="lobby-submit" type="submit">방 만들고 시작할래</button><button class="solo-button" type="button" data-solo>혼자 할래</button></div>
           </form>
           <form class="room-form" data-room-form="join" ${dialog.dataset.mode === "join" ? "" : "hidden"}>
             <label><span>내 이름 <small>손님</small></span><input name="name" maxlength="12" autocomplete="off" placeholder="들어갈 때 사용할 이름" required /></label>
@@ -193,6 +193,9 @@
       entryButton?.focus({ preventScroll: true });
     }, { once: true });
     dialog.querySelector(".room-dialog-close").addEventListener("click", () => dialog.close());
+    dialog.querySelector("[data-solo]").addEventListener("click", () => {
+      window.location.assign(gameType === "dice" ? "/dice?solo=1" : `/?solo=1#${gameType}`);
+    });
     dialog.addEventListener("click", (event) => {
       if (event.target !== dialog) return;
       const bounds = dialog.getBoundingClientRect();
@@ -652,6 +655,7 @@
   window.BetyaRoom = { hasSession, leave, session: () => session, state: () => roomState, send };
 
   const inviteCode = inviteCodeFromUrl();
+  if (!inviteCode && new URLSearchParams(location.search).get("solo") === "1") return;
   if (inviteCode) {
     // The metadata call tells us whether the cookie still holds a session.
     clearSession();
