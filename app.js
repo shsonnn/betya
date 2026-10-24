@@ -1,6 +1,25 @@
 const app = document.querySelector("#app");
 const homeTemplate = document.querySelector("#home-template");
 const brand = document.querySelector(".brand");
+const homePattern = document.querySelector(".home-pattern");
+
+if (homePattern) {
+  const pattern = document.createDocumentFragment();
+  for (let row = 0; row < 15; row += 1) {
+    const line = document.createElement("div");
+    line.className = "home-pattern-row";
+    line.style.setProperty("--row", row);
+    line.style.setProperty("--shift", row % 2);
+    for (let column = 0; column < 11; column += 1) {
+      const icon = document.createElement("img");
+      icon.src = "./assets/home/figma-2025/pattern.svg";
+      icon.alt = "";
+      line.append(icon);
+    }
+    pattern.append(line);
+  }
+  homePattern.append(pattern);
+}
 
 const state = {
   dice: { people: [], rolls: [] },
@@ -13,7 +32,6 @@ const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matc
 
 brand.addEventListener("click", () => window.BetyaRoom?.leave());
 window.addEventListener("hashchange", renderRoute);
-document.addEventListener("betya-show-home", renderHome);
 
 function navigate(route) {
   if (route === "dice") {
@@ -33,8 +51,6 @@ function renderRoute() {
   if (!window.BetyaRoom?.hasSession()) return;
   const route = currentRoute();
   document.body.dataset.route = route;
-  if (route === "home") window.BetyaRoom?.hideLocalReactions?.();
-  else window.BetyaRoom?.showLocalReactions?.();
   if (route === "pick") renderPick();
   else if (route === "team") renderTeam();
   else if (route === "dice") renderDice();
@@ -43,16 +59,9 @@ function renderRoute() {
 }
 
 function renderHome() {
-  window.BetyaRoom?.hideLocalReactions?.();
-  delete document.body.dataset.lobby;
-  document.body.dataset.route = "home";
-  document.querySelector(".site-header").hidden = false;
   app.replaceChildren(homeTemplate.content.cloneNode(true));
   document.querySelectorAll(".game-card[data-route]").forEach((card) => {
-    card.addEventListener("click", () => {
-      if (window.BetyaRoom?.hasSession()) navigate(card.dataset.route);
-      else window.BetyaRoom?.openLobby(card.dataset.route);
-    });
+    card.addEventListener("click", () => navigate(card.dataset.route));
   });
 }
 
@@ -61,7 +70,7 @@ function pageShell(theme, title, subtitle, setupMarkup, resultMarkup) {
     <section class="game-page theme-${theme}">
       <div class="game-heading">
         <div class="game-heading__copy"><h1>${title}</h1><p>${subtitle}</p></div>
-        <button class="back-button" type="button" aria-label="게임 선택으로 돌아가기" data-back>게임 선택</button>
+        <button class="back-button" type="button" aria-label="방 나가기" data-back>방 나가기</button>
       </div>
       <div class="workspace">
         <section class="panel">${setupMarkup}</section>
@@ -105,10 +114,10 @@ function bindEntry(type, rerender) {
   };
   document.querySelector("[data-entry-add]").addEventListener("click", add);
   input.addEventListener("keydown", (event) => {
-    if (event.key === "Enter" && !event.isComposing) event.preventDefault();
-  });
-  input.addEventListener("keyup", (event) => {
-    if (event.key === "Enter" && !event.isComposing) add();
+    if (event.key === "Enter") {
+      event.preventDefault();
+      add();
+    }
   });
   document.querySelectorAll(`[data-remove-${type}]`).forEach((button) => {
     button.addEventListener("click", () => {
@@ -348,4 +357,3 @@ function escapeHtml(value) {
 }
 
 if (window.BetyaRoom?.hasSession()) renderRoute();
-else renderHome();

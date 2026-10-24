@@ -3,27 +3,30 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#f7f5ff" />
+    <meta name="theme-color" content="#f2f4fd" />
     <meta name="description" content="우리끼리 내기 게임." />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="하면해" />
     <meta property="og:title" content="하면해" />
     <meta property="og:description" content="우리끼리 내기 게임." />
-    <meta property="og:url" content="https://betya.sonsahyeon.workers.dev/" />
+    <meta property="og:url" content="https://betya.toxcap.com/" />
     <meta name="twitter:card" content="summary" />
     <meta name="twitter:title" content="하면해" />
     <meta name="twitter:description" content="우리끼리 내기 게임." />
     <title>하면해 — 우리끼리 내기 게임</title>
     <link rel="stylesheet" href="./styles.css?v=20261012-4" />
-    <link rel="stylesheet" href="./room.css?v=20261013-11" />
+    <link rel="stylesheet" href="./room.css?v=20261022-chat-colors-3" />
+    <link rel="stylesheet" href="./home.css?v=20261022-7" />
+    <link rel="preload" href="./assets/fonts/KERISKEDU-B.woff" as="font" type="font/woff" crossorigin />
     <link rel="prefetch" href="./dice.html" as="document" />
     <link rel="prefetch" href="./dice.css?v=20261010-6" as="style" />
     <link rel="prefetch" href="./dice.js?v=20261012-1" as="script" />
   </head>
   <body>
+    <div class="home-pattern" aria-hidden="true"></div>
     <header class="site-header">
       <button class="brand" type="button" aria-label="게임 선택 화면으로 이동">
-        <img src="./assets/logo.svg" alt="하면해" />
+        <span class="brand-art"><img src="./assets/home/logo.svg" alt="하면해" /></span>
       </button>
     </header>
 
@@ -32,42 +35,47 @@
     <template id="home-template">
       <section class="home" aria-labelledby="home-title">
         <h1 id="home-title" class="sr-only">게임을 골라주세요</h1>
+        <div class="home-actions">
+          <button class="home-join-button" type="button"><span class="sr-only">방 입장하기</span><img src="./assets/home/join-button-complete.svg" alt="" aria-hidden="true" /></button>
+        </div>
         <div class="game-grid">
           <button class="game-card game-card--dice" type="button" data-route="dice">
+            <span class="card-outline" aria-hidden="true"><img src="./assets/home/card-outline.svg" alt="" /></span>
             <span class="card-copy">
               <strong>0의 주사위</strong>
               <span>두 번 굴려 더한 값이 가장 낮은 사람이 쏘기~!</span>
             </span>
             <span class="card-art card-art--dice" aria-hidden="true">
-              <img src="./assets/dice-character.svg" alt="" />
+              <span class="art-canvas"><img src="./assets/home/figma-2025/dice.svg" alt="" /></span>
             </span>
           </button>
 
           <button class="game-card game-card--pick" type="button" data-route="pick">
+            <span class="card-outline" aria-hidden="true"><img src="./assets/home/card-outline.svg" alt="" /></span>
             <span class="card-copy">
               <strong>아무나 걸려라</strong>
               <span>그냥 아묻따 랜덤 뽑기 ㄷㄷ</span>
             </span>
             <span class="card-art card-art--pick" aria-hidden="true">
-              <img src="./assets/random-pick.svg" alt="" />
+              <span class="art-canvas"><img src="./assets/home/figma-2025/pick.svg" alt="" /></span>
             </span>
           </button>
 
           <button class="game-card game-card--team" type="button" data-route="team">
+            <span class="card-outline" aria-hidden="true"><img src="./assets/home/card-outline.svg" alt="" /></span>
             <span class="card-copy">
               <strong>팀 나누기</strong>
               <span>아 팀전으로 가면가~</span>
             </span>
             <span class="card-art card-art--team" aria-hidden="true">
-              <img class="team-left" src="./assets/team-left.svg" alt="" />
-              <img class="team-right" src="./assets/team-right.svg" alt="" />
+              <span class="art-canvas"><img class="team-left" src="./assets/home/figma-2025/team-left.svg" alt="" /><img class="team-right" src="./assets/home/figma-2025/team-right.svg" alt="" /></span>
             </span>
           </button>
         </div>
       </section>
     </template>
 
-    <script src="./room.js?v=20261013-11"></script>
-    <script src="./app.js?v=20261013-3"></script>
+    <script src="./room.js?v=20261022-chat-groups"></script>
+    <script src="./app.js?v=20261022-1"></script>
   </body>
 </html>

@@ -1,0 +1,346 @@
+@font-face {
+  font-family: "KEDU Home";
+  src: url("./assets/fonts/KERISKEDU-B.woff") format("woff");
+  font-weight: 700;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Pretendard Home";
+  src: url("./assets/fonts/Pretendard-Medium.woff2") format("woff2");
+  font-weight: 500;
+  font-display: swap;
+}
+
+body[data-route="home"] {
+  --home-unit: min(1px, 0.0520833333vw, 0.0925925926svh);
+  --home-card-height: calc(600 * var(--home-unit));
+  --home-header-height: calc(100svh - 720 * var(--home-unit));
+  background: #f2f4fd;
+  min-height: 100svh;
+}
+body[data-route="home"] .home-pattern {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+body:not([data-route="home"]) .home-pattern { display: none; }
+.home-pattern-row {
+  position: absolute;
+  top: calc((-9 + 81.88623 * var(--row)) * var(--home-unit));
+  left: calc((-116 + 104 * var(--shift)) * var(--home-unit));
+  display: flex;
+  gap: calc(46 * var(--home-unit));
+  width: calc(2151.4104 * var(--home-unit));
+  height: calc(43.88623 * var(--home-unit));
+  opacity: .5;
+}
+.home-pattern-row img {
+  display: block;
+  flex: 0 0 auto;
+  width: calc(153.76457 * var(--home-unit));
+  height: calc(43.88623 * var(--home-unit));
+}
+body[data-route="home"] :is(.site-header, #app) { position: relative; z-index: 1; }
+body[data-route="home"] .site-header {
+  height: var(--home-header-height);
+  padding: calc(120 * var(--home-unit)) 0 0;
+  display: grid;
+  place-items: start center;
+}
+body[data-route="home"] .brand {
+  position: relative;
+  width: calc(300 * var(--home-unit));
+  height: calc(119.502 * var(--home-unit));
+  transform: translateX(calc(0.495 * var(--home-unit)));
+  container-type: inline-size;
+}
+body[data-route="home"] .brand-art {
+  display: block;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 300px;
+  height: 119.502px;
+  transform: scale(calc(100cqw / 300px));
+  transform-origin: top left;
+}
+body[data-route="home"] .brand img {
+  position: absolute;
+  left: -4.494px;
+  top: -4.494px;
+  width: auto;
+  height: auto;
+  max-width: none;
+}
+body[data-route="home"] .home {
+  position: relative;
+  width: calc(1440 * var(--home-unit));
+  margin: 0 auto;
+  padding-bottom: calc(120 * var(--home-unit));
+}
+body[data-route="home"] .home-actions {
+  position: absolute;
+  top: calc(-80 * var(--home-unit));
+  right: 0;
+}
+body[data-route="home"] .home-join-button {
+  position: relative;
+  display: block;
+  width: calc(200 * var(--home-unit));
+  height: calc(60 * var(--home-unit));
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  transition: transform 180ms ease;
+}
+body[data-route="home"] .home-join-button img {
+  position: absolute;
+  top: calc(-10.4519 * var(--home-unit));
+  left: calc(-9.53577 * var(--home-unit));
+  display: block;
+  width: calc(223 * var(--home-unit));
+  height: calc(84 * var(--home-unit));
+  max-width: none;
+  pointer-events: none;
+}
+body[data-route="home"] .home-join-button:hover { transform: translateY(-3px); }
+body[data-route="home"] .home-join-button:focus-visible { outline: 3px solid var(--blue); outline-offset: 4px; }
+body[data-route="home"] .game-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: calc(20 * var(--home-unit));
+}
+body[data-route="home"] .game-card {
+  aspect-ratio: 466.666667 / 600;
+  height: auto;
+  min-height: 0;
+  overflow: visible;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  container-type: inline-size;
+  transition: transform 180ms ease;
+}
+/* Exact Figma dynamic-stroke geometry, scaled as vectors with the card. */
+body[data-route="home"] .card-outline {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 466.6666564941406px;
+  height: 652.7907104492188px;
+  transform: scale(calc(100cqw / 466.6666564941406px)) scaleY(.919128);
+  transform-origin: top left;
+  pointer-events: none;
+}
+body[data-route="home"] .card-outline img {
+  position: absolute;
+  top: -12px;
+  left: -12px;
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: none;
+}
+body[data-route="home"] .game-card:hover { transform: translateY(-5px); }
+body[data-route="home"] .game-card:focus-visible {
+  outline: 3px solid var(--blue);
+  outline-offset: 7px;
+  transform: translateY(-5px);
+}
+body[data-route="home"] .card-copy {
+  top: calc(32 * var(--home-unit));
+  left: calc(40 * var(--home-unit));
+  right: calc(24 * var(--home-unit));
+  gap: calc(5.6 * var(--home-unit));
+}
+body[data-route="home"] .card-copy strong {
+  font-family: "KEDU Home", sans-serif;
+  font-size: calc(48 * var(--home-unit));
+  font-weight: 700;
+  line-height: 1.3;
+  letter-spacing: -.02em;
+  white-space: nowrap;
+}
+body[data-route="home"] .card-copy > span {
+  max-width: none;
+  font-family: "Pretendard Home", Pretendard, sans-serif;
+  font-size: calc(18 * var(--home-unit));
+  font-weight: 500;
+  line-height: 1.3;
+  letter-spacing: -.02em;
+  white-space: nowrap;
+}
+body[data-route="home"] .card-art {
+  inset: auto 0 0;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border-radius: 0 0 calc(20 * var(--home-unit)) calc(20 * var(--home-unit));
+}
+body[data-route="home"] .art-canvas {
+  display: block;
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 466px;
+  height: 466px;
+  transform: scale(calc(100cqw / 466px));
+  transform-origin: bottom left;
+}
+body[data-route="home"] .card-art img {
+  position: absolute;
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: none;
+  max-height: none;
+  right: auto;
+  bottom: auto;
+}
+body[data-route="home"] .card-art--dice img { left: 103.11px; top: 18px; transform: scaleX(-1); }
+body[data-route="home"] .card-art--pick .art-canvas { bottom: calc(-4.5 * var(--home-unit)); }
+body[data-route="home"] .card-art--pick img { left: 104.617px; top: 43.478px; }
+body[data-route="home"] .card-art--team .team-left { left: 82.09px; top: 41px; transform: none; }
+body[data-route="home"] .card-art--team .team-right { left: 232.39px; top: 173.32px; transform: none; }
+
+/* Keep the landing artwork unobstructed; room setup opens after choosing a game. */
+body:has(.room-dialog[open]) { overflow: hidden; }
+.room-dialog {
+  position: relative;
+  width: min(480px, calc(100vw - 32px));
+  height: 688px;
+  max-height: calc(100svh - 32px);
+  padding: 24px;
+  overflow: hidden;
+  border: 2px solid transparent;
+  border-radius: 20px;
+  color: var(--ink);
+  background: #fff;
+  box-shadow: 0 20px 80px #17171730;
+}
+.room-dialog::after {
+  position: absolute;
+  z-index: 2;
+  inset: 0;
+  content: "";
+  pointer-events: none;
+  background: center / 100% 100% no-repeat url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100' preserveAspectRatio='none'%3E%3Cpath d='M2 1.8C14 1.1 25 2.8 38 1.6C51 .8 64 2.7 77 1.7C87 1 94 1.6 97.8 2.3C98.6 14 97.2 27 98.1 40C98.8 53 97.1 66 98 79C98.6 89 98.2 95 97.4 98C84 98.7 71 97.3 58 98.1C45 98.8 32 97.2 19 98C10 98.6 4 98.2 2 97.4C1.3 84 2.7 71 1.9 58C1.2 45 2.8 32 2 19C1.4 10 1.7 4 2 1.8Z' fill='none' stroke='%23171717' stroke-width='1.2' vector-effect='non-scaling-stroke' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+.room-dialog[open] { display: flex; flex-direction: column; }
+.room-dialog::backdrop { background: #17192566; backdrop-filter: blur(4px); }
+.room-dialog-heading { display: flex; flex: none; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 20px; }
+.room-dialog-heading h2 { margin: 0; color: var(--blue); font: 700 30px/1.3 "KEDU Home", sans-serif; }
+.room-dialog[data-game="pick"] h2 { color: var(--coral); }
+.room-dialog[data-game="team"] h2 { color: var(--green); }
+.room-dialog[data-mode="join"] h2 { color: var(--ink); }
+.room-dialog-close { width: 40px; height: 40px; border: 0; border-radius: 50%; background: #f2f4fd; color: var(--ink); font-size: 28px; cursor: pointer; }
+.room-dialog .room-lobby { display: flex; flex: 1; flex-direction: column; align-items: stretch; width: 100%; min-height: 0; margin: 0; padding: 0; }
+.room-dialog .lobby-card { display: flex; flex: 1; flex-direction: column; width: 100%; min-height: 0; padding: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; backdrop-filter: none; }
+.room-dialog .room-form:not([hidden]) { display: flex; flex: 1; flex-direction: column; min-height: 0; padding: 24px 0 0; }
+.room-dialog .room-form .lobby-submit { flex: none; margin-top: auto; }
+.room-dialog .room-form fieldset { min-width: 0; }
+.room-dialog :is(button,input):focus-visible { outline: 3px solid #3460ff88; outline-offset: 3px; }
+.room-dialog :is(.segmented-control,.game-choice) input:focus-visible + span { outline: 3px solid #3460ff88; outline-offset: 2px; }
+
+@media (max-width: 700px) {
+  body[data-route="home"] {
+    --home-unit: min(.78px, .09svh);
+    --mobile-header-height: clamp(88px, 17svh, 142px);
+  }
+  body[data-route="home"] .site-header {
+    height: var(--mobile-header-height);
+    padding: 0;
+    place-items: center;
+  }
+  body[data-route="home"] .brand {
+    width: clamp(130px, 24svh, 204px);
+    height: auto;
+    aspect-ratio: 300 / 119.502;
+  }
+  body[data-route="home"] .home {
+    width: calc(100% - 32px);
+    padding-bottom: 16px;
+  }
+  body[data-route="home"] .home-actions { position: static; display: flex; justify-content: flex-end; margin-bottom: 12px; }
+  body[data-route="home"] .home-join-button { width: 140px; height: 42px; }
+  body[data-route="home"] .home-join-button img { top: -7.316px; left: -6.675px; width: 156.1px; height: 58.8px; }
+  body[data-route="home"] .game-grid { grid-template-columns: 1fr; gap: 12px; }
+  body[data-route="home"] .game-card {
+    height: calc((100svh - var(--mobile-header-height) - 96px) / 3);
+    aspect-ratio: auto;
+    overflow: hidden;
+    border: 2px solid #111;
+    border-radius: 8px;
+    background: white;
+    box-shadow: 1px 1px 8px #0000001a;
+  }
+  body[data-route="home"] .card-outline { display: none; }
+  body[data-route="home"] .card-copy {
+    top: 22px;
+    left: 22px;
+    right: 38%;
+    gap: 4px;
+  }
+  body[data-route="home"] .card-copy strong { font-size: clamp(20px, 5.5vw, 30px); white-space: normal; }
+  body[data-route="home"] .card-copy > span { font-size: clamp(11px, 2.8vw, 14px); white-space: normal; }
+  body[data-route="home"] .card-art {
+    left: auto;
+    right: 0;
+    width: 50%;
+    height: 100%;
+    aspect-ratio: auto;
+    container-type: inline-size;
+  }
+  .room-dialog { padding: 20px; }
+  .room-dialog-heading { margin-bottom: 12px; }
+  .room-dialog .room-form:not([hidden]) { padding-top: 16px; }
+  .room-dialog .room-form > label { gap: 6px; margin-bottom: 10px; }
+  .room-dialog .room-form input:not([type="radio"]) { height: 44px; }
+  .room-dialog .privacy-fieldset,
+  .room-dialog .game-fieldset { margin-bottom: 10px; }
+  .room-dialog .privacy-fieldset legend,
+  .room-dialog .game-fieldset legend { margin-bottom: 6px; }
+}
+
+@media (max-height: 650px) {
+  .room-dialog { padding: 12px 16px; }
+  .room-dialog-heading { margin-bottom: 6px; }
+  .room-dialog-heading h2 { font-size: 24px; }
+  .room-dialog-close { width: 32px; height: 32px; font-size: 24px; }
+  .room-dialog .lobby-tabs { padding: 3px; }
+  .room-dialog .lobby-tab { min-height: 36px; }
+  .room-dialog .room-form:not([hidden]) { padding-top: 10px; }
+  .room-dialog .room-form > label { gap: 4px; margin-bottom: 6px; }
+  .room-dialog .room-form input:not([type="radio"]) { height: 38px; }
+  .room-dialog .privacy-fieldset,
+  .room-dialog .game-fieldset { margin-bottom: 6px; }
+  .room-dialog .privacy-fieldset legend,
+  .room-dialog .game-fieldset legend { margin-bottom: 4px; }
+  .room-dialog .segmented-control span { min-height: 36px; }
+  .room-dialog .game-choice > span { min-height: 52px; padding: 6px; gap: 2px; }
+  .room-dialog .game-choice small { font-size: 9px; }
+  .room-dialog .form-error { min-height: 16px; margin-bottom: 4px; }
+  .room-dialog .lobby-submit { min-height: 46px; }
+}
+
+@media (max-height: 520px) {
+  .room-dialog { padding: 8px 12px; }
+  .room-dialog-heading { margin-bottom: 4px; }
+  .room-dialog-heading h2 { font-size: 21px; }
+  .room-dialog-close { width: 28px; height: 28px; }
+  .room-dialog .lobby-tab { min-height: 30px; }
+  .room-dialog .room-form:not([hidden]) { padding-top: 6px; }
+  .room-dialog .room-form > label { gap: 2px; margin-bottom: 2px; }
+  .room-dialog .room-form input:not([type="radio"]) { height: 32px; }
+  .room-dialog .privacy-fieldset,
+  .room-dialog .game-fieldset { margin-bottom: 2px; }
+  .room-dialog .segmented-control span { min-height: 30px; }
+  .room-dialog .game-choice > span { min-height: 36px; padding: 4px; }
+  .room-dialog .game-choice small { display: none; }
+  .room-dialog .lobby-submit { min-height: 40px; }
+}

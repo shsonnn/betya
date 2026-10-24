@@ -6,6 +6,7 @@ const dist = new URL("../dist/", import.meta.url);
 const files = [
   "index.html",
   "styles.css",
+  "home.css",
   "app.js",
   "dice.html",
   "dice.css",
