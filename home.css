@@ -14,7 +14,7 @@
 body[data-route="home"] {
   --home-unit: min(1px, 0.0520833333vw, 0.0925925926svh);
   --home-card-height: calc(600 * var(--home-unit));
-  --home-header-height: calc(100svh - 720 * var(--home-unit));
+  --home-header-height: calc(239.502 * var(--home-unit));
   background: #f2f4fd;
   min-height: 100svh;
 }
@@ -77,7 +77,7 @@ body[data-route="home"] .brand img {
 body[data-route="home"] .home {
   position: relative;
   width: calc(1440 * var(--home-unit));
-  margin: 0 auto;
+  margin: 40px auto 0;
   padding-bottom: calc(120 * var(--home-unit));
 }
 body[data-route="home"] .home-actions {
@@ -220,16 +220,8 @@ body:has(.room-dialog[open]) { overflow: hidden; }
   border: 2px solid transparent;
   border-radius: 20px;
   color: var(--ink);
-  background: #fff;
+  background: #fff url("./assets/home/card-outline.svg") center / 100% 100% no-repeat;
   box-shadow: 0 20px 80px #17171730;
-}
-.room-dialog::after {
-  position: absolute;
-  z-index: 2;
-  inset: 0;
-  content: "";
-  pointer-events: none;
-  background: center / 100% 100% no-repeat url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100' preserveAspectRatio='none'%3E%3Cpath d='M2 1.8C14 1.1 25 2.8 38 1.6C51 .8 64 2.7 77 1.7C87 1 94 1.6 97.8 2.3C98.6 14 97.2 27 98.1 40C98.8 53 97.1 66 98 79C98.6 89 98.2 95 97.4 98C84 98.7 71 97.3 58 98.1C45 98.8 32 97.2 19 98C10 98.6 4 98.2 2 97.4C1.3 84 2.7 71 1.9 58C1.2 45 2.8 32 2 19C1.4 10 1.7 4 2 1.8Z' fill='none' stroke='%23171717' stroke-width='1.2' vector-effect='non-scaling-stroke' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 .room-dialog[open] { display: flex; flex-direction: column; }
 .room-dialog::backdrop { background: #17192566; backdrop-filter: blur(4px); }
@@ -250,12 +242,13 @@ body:has(.room-dialog[open]) { overflow: hidden; }
 @media (max-width: 700px) {
   body[data-route="home"] {
     --home-unit: min(.78px, .09svh);
-    --mobile-header-height: clamp(88px, 17svh, 142px);
+    --mobile-logo-height: clamp(51.8px, 9.56svh, 81.3px);
+    --mobile-header-height: calc(24px + var(--mobile-logo-height));
   }
   body[data-route="home"] .site-header {
     height: var(--mobile-header-height);
-    padding: 0;
-    place-items: center;
+    padding: 24px 0 0;
+    place-items: start center;
   }
   body[data-route="home"] .brand {
     width: clamp(130px, 24svh, 204px);
@@ -264,14 +257,15 @@ body:has(.room-dialog[open]) { overflow: hidden; }
   }
   body[data-route="home"] .home {
     width: calc(100% - 32px);
+    margin-top: 40px;
     padding-bottom: 16px;
   }
-  body[data-route="home"] .home-actions { position: static; display: flex; justify-content: flex-end; margin-bottom: 12px; }
+  body[data-route="home"] .home-actions { position: absolute; top: -42px; right: 0; display: flex; justify-content: flex-end; margin: 0; }
   body[data-route="home"] .home-join-button { width: 140px; height: 42px; }
   body[data-route="home"] .home-join-button img { top: -7.316px; left: -6.675px; width: 156.1px; height: 58.8px; }
   body[data-route="home"] .game-grid { grid-template-columns: 1fr; gap: 12px; }
   body[data-route="home"] .game-card {
-    height: calc((100svh - var(--mobile-header-height) - 96px) / 3);
+    height: calc((100svh - var(--mobile-header-height) - 80px) / 3);
     aspect-ratio: auto;
     overflow: hidden;
     border: 2px solid #111;
