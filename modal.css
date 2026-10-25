@@ -54,7 +54,8 @@
 .room-dialog.room-dialog .privacy-fieldset legend { padding: 0; margin: 0 0 9px; }
 .room-dialog.room-dialog .segmented-control { height: 46px; gap: 8px; }
 .room-dialog.room-dialog .segmented-control span { height: 44px; min-height: 44px; padding: 0; border: 0; border-radius: 8px; background: url("./assets/modal/private.svg") center / 100% 100% no-repeat; color: #a6a9ba; font: 400 18px/1.3 "MemomentKkukkukk", sans-serif; }
-.room-dialog.room-dialog .segmented-control input:checked + span { background-image: url("./assets/modal/public.svg"); color: #343642; box-shadow: none; }
+.room-dialog.room-dialog .segmented-control label > span { color: #a6a9ba; }
+.room-dialog.room-dialog .segmented-control input:checked + span { background-image: url("./assets/modal/selected.svg"); color: #3e62ff; box-shadow: none; }
 .room-dialog-actions { display: grid; grid-template-columns: minmax(0, 260fr) minmax(0, 128fr); gap: 8px; margin-top: auto; flex: none; }
 .room-dialog.room-dialog .lobby-submit,
 .room-dialog.room-dialog .solo-button { width: 100%; height: 50px; min-height: 50px; margin: 0; padding: 0 4px; border: 0; border-radius: 8px; box-shadow: none; background: url("./assets/modal/primary.svg") center / 100% 100% no-repeat; color: white; font: 400 20px/1.3 "MemomentKkukkukk", sans-serif; letter-spacing: -.02em; cursor: pointer; }
@@ -67,7 +68,7 @@
 .room-dialog.room-dialog .room-form input:not([type="radio"]) { --control-art: url("./assets/modal/name-input.svg"); }
 .room-dialog.room-dialog input[name="roomName"] { --control-art: url("./assets/modal/room-input.svg"); }
 .room-dialog.room-dialog .segmented-control span { --control-art: url("./assets/modal/private.svg"); }
-.room-dialog.room-dialog .segmented-control input:checked + span { --control-art: url("./assets/modal/public.svg"); background: transparent; }
+.room-dialog.room-dialog .segmented-control input:checked + span { --control-art: url("./assets/modal/selected.svg"); background: transparent; }
 .room-dialog.room-dialog .lobby-submit { --control-art: url("./assets/modal/primary.svg"); }
 .room-dialog.room-dialog .solo-button { --control-art: url("./assets/modal/solo.svg"); }
 .room-dialog.room-dialog .lobby-submit:hover { transform: none; filter: brightness(.96); box-shadow: none; }
