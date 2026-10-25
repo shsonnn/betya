@@ -38,6 +38,9 @@ body.room-active .room-bar::after {
   pointer-events: none;
 }
 body.room-active .room-leave {
+  --sketch-color: #999;
+  --sketch-width: 1.5;
+  position: relative;
   justify-self: start;
   min-height: 29px;
   padding: 1px 10px 1px 4px;
@@ -51,6 +54,7 @@ body.room-active .room-leave {
   font-size: 16px;
   font-weight: 400;
 }
+body.room-active .room-leave.has-sketch-outline { border-color: transparent; }
 body.room-active .room-leave img { display: block; flex: none; }
 body.room-active .room-game-title {
   justify-self: center;
@@ -79,6 +83,9 @@ body.room-active .room-identity strong {
 body.room-active .room-identity span { color: #7f8394; font-size: 11px; }
 body.room-active .connection-dot { display: none; }
 body.room-active .room-code-button {
+  --sketch-color: #3e62ff;
+  --sketch-width: 1.5;
+  position: relative;
   min-height: 36px;
   padding: 4px 12px;
   display: inline-flex;
@@ -92,6 +99,7 @@ body.room-active .room-code-button {
   white-space: nowrap;
   cursor: pointer;
 }
+body.room-active .room-code-button.has-sketch-outline { border-color: transparent; }
 body.room-active .room-code-button small { color: #7f8394; font-size: 14px; }
 
 body.room-active .chat-panel {

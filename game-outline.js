@@ -1,6 +1,6 @@
 /* A measured SVG stroke keeps the Figma-style hand-drawn outline crisp at every size. */
 (() => {
-  const selector = ".game-settings-frame, .dice-panel .player, .play-area .die-cube, .sketch-input-frame, .chip, .primary-button, .roll-button";
+  const selector = ".game-settings-frame, .dice-panel .player, .play-area .die-cube, .sketch-input-frame, .chip, .primary-button, .roll-button, .room-leave, .room-code-button";
   const watched = new WeakSet();
   const resizeObserver = new ResizeObserver((entries) => {
     for (const { target } of entries) draw(target);
@@ -21,9 +21,10 @@
     const die = element.classList.contains("die-cube");
     const button = element.matches(".primary-button, .roll-button");
     const edge = panel || die ? 2.6 : button ? 1.8 : 1.5;
-    const radius = button ? 14 : panel || die ? 9 : 8;
+    const headerButton = element.matches(".room-leave, .room-code-button");
+    const radius = button ? 14 : headerButton ? 5 : panel || die ? 9 : 8;
     const amplitude = panel ? 1.3 : die ? 1.1 : button ? 1 : .75;
-    const seed = panel ? 2.4 : die ? 5.2 : button ? 3.4 : Number(element.dataset.player || 0) + 1.8;
+    const seed = panel ? 2.4 : die ? 5.2 : button ? 3.4 : headerButton ? 4.1 : Number(element.dataset.player || 0) + 1.8;
     let d = `M ${edge + radius} ${edge}`;
     for (let x = edge + radius + 8; x < w - edge - radius; x += 8) d += ` L ${x.toFixed(1)} ${(edge + amplitude * wave(x, seed)).toFixed(2)}`;
     d += ` L ${w - edge - radius} ${edge} Q ${w - edge} ${edge} ${w - edge} ${edge + radius}`;

@@ -157,6 +157,10 @@ function chipMarkup(items, type) {
 
 function bindEntry(type, rerender) {
   const input = document.querySelector("[data-entry-input]");
+  let composing = false;
+  let compositionEndedAt = -Infinity;
+  let imeEnterPending = false;
+  let imeAddTimer = 0;
   const add = () => {
     if (isGuest()) return;
     const values = input.value.split(/[,\n]/).map((value) => value.trim()).filter(Boolean);
@@ -171,10 +175,42 @@ function bindEntry(type, rerender) {
     if (type === "pick") sendPickSetup();
     else if (type === "team") sendTeamSetup();
   };
+  const queueImeAdd = () => {
+    if (imeAddTimer) return;
+    imeAddTimer = window.setTimeout(() => {
+      imeAddTimer = 0;
+      if (input.isConnected) add();
+    }, 0);
+  };
   document.querySelector("[data-entry-add]").addEventListener("click", add);
+  input.addEventListener("compositionstart", () => { composing = true; });
+  input.addEventListener("compositionend", () => {
+    composing = false;
+    compositionEndedAt = performance.now();
+    if (imeEnterPending) {
+      imeEnterPending = false;
+      queueImeAdd();
+    }
+  });
   input.addEventListener("keydown", (event) => {
     if (event.key === "Enter") {
+      // Enter can finish a Korean IME syllable before it should submit a new item.
+      if (event.isComposing || composing || event.keyCode === 229) {
+        imeEnterPending = true;
+        // Some browsers report keyCode 229 after compositionend; don't strand that Enter.
+        window.setTimeout(() => {
+          if (!composing && imeEnterPending && input.isConnected) {
+            imeEnterPending = false;
+            queueImeAdd();
+          }
+        }, 40);
+        return;
+      }
       event.preventDefault();
+      if (performance.now() - compositionEndedAt < 40) {
+        queueImeAdd();
+        return;
+      }
       add();
     }
   });
