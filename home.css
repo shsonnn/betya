@@ -83,7 +83,7 @@ body[data-route="home"] .home {
 body[data-route="home"] .home-actions {
   position: absolute;
   top: calc(-80 * var(--home-unit));
-  right: 0;
+  left: calc(50% + 150.495 * var(--home-unit) + 40px);
 }
 body[data-route="home"] .home-join-button {
   position: relative;
@@ -257,10 +257,10 @@ body:has(.room-dialog[open]) { overflow: hidden; }
   }
   body[data-route="home"] .home {
     width: calc(100% - 32px);
-    margin-top: 40px;
+    margin-top: calc(40px + 42px + 16px);
     padding-bottom: 16px;
   }
-  body[data-route="home"] .home-actions { position: absolute; top: -42px; right: 0; display: flex; justify-content: flex-end; margin: 0; }
+  body[data-route="home"] .home-actions { position: absolute; top: calc(-42px - 16px); right: 0; left: auto; display: flex; justify-content: flex-end; margin: 0; }
   body[data-route="home"] .home-join-button { width: 140px; height: 42px; }
   body[data-route="home"] .home-join-button img { top: -7.316px; left: -6.675px; width: 156.1px; height: 58.8px; }
   body[data-route="home"] .game-grid { grid-template-columns: 1fr; gap: 12px; }
