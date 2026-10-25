@@ -17,6 +17,7 @@
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='15' fill='%23ff4d67'/%3E%3Ccircle cx='20' cy='20' r='5' fill='white'/%3E%3Ccircle cx='44' cy='20' r='5' fill='white'/%3E%3Ccircle cx='32' cy='32' r='5' fill='white'/%3E%3Ccircle cx='20' cy='44' r='5' fill='white'/%3E%3Ccircle cx='44' cy='44' r='5' fill='white'/%3E%3C/svg%3E" />
     <link rel="stylesheet" href="./dice.css?v=20261012-1" />
     <link rel="stylesheet" href="./room.css?v=20261022-chat-colors-3" />
+    <link rel="stylesheet" href="./game-screen.css?v=20261025-unified-2" />
   </head>
   <body>
     <button class="home-link" id="dice-home" type="button" aria-label="게임 선택 화면으로 돌아가기">
@@ -29,20 +30,19 @@
       </header>
 
       <div class="dice-workspace">
-        <section class="dice-panel settings-panel" aria-labelledby="settings-title">
-          <h2 id="settings-title">게임 설정</h2>
-          <p class="panel-helper">인원수를 정하고 참가자 이름을 입력해주세요.</p>
+        <div class="game-settings-frame"><section class="dice-panel settings-panel" aria-labelledby="settings-title">
+          <h2 id="settings-title" class="visually-hidden">게임 설정</h2>
           <div class="setup" aria-label="참가 인원 설정">
             <span class="setup-label">참가 인원</span>
             <div class="stepper">
-              <button id="decrease-players" type="button" aria-label="인원 줄이기">−</button>
+              <button id="decrease-players" type="button" aria-label="인원 줄이기"><img src="./assets/game/minus-icon.svg" alt="" /></button>
               <strong id="player-count" aria-live="polite">6명</strong>
-              <button id="increase-players" type="button" aria-label="인원 늘리기">＋</button>
+              <button id="increase-players" type="button" aria-label="인원 늘리기"><img src="./assets/game/plus-icon.svg" alt="" /></button>
             </div>
           </div>
           <p class="name-helper">이름을 누르면 바로 수정할 수 있어요.</p>
           <ol class="players" id="players" aria-label="참가자 진행 상황"></ol>
-        </section>
+        </section></div>
 
         <section class="dice-panel play-area" aria-live="polite">
           <div class="play-heading">
@@ -64,7 +64,8 @@
         </section>
       </div>
     </main>
-    <script src="./room.js?v=20261025-realtime-2"></script>
+    <script src="./room.js?v=20261025-unified-2"></script>
     <script src="./dice.js?v=20261025-realtime-2"></script>
+    <script src="./game-outline.js?v=20261025-unified-2"></script>
   </body>
 </html>

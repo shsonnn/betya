@@ -344,30 +344,29 @@
   function mountRoomChrome() {
     if (document.querySelector(".room-bar")) return;
     document.body.classList.add("room-active");
+    const gameTitles = { dice: "0의 주사위", pick: "아무나 걸려라", team: "팀 나누기" };
+    const gameTitle = gameTitles[session.gameType] || gameTitles.dice;
     document.body.insertAdjacentHTML("afterbegin", `
       <header class="room-bar">
+        <button class="room-leave" type="button" data-room-leave aria-label="게임 선택 화면으로 돌아가기"><img src="/assets/game/home-icon.svg" alt="" />홈</button>
+        <div class="room-game-title room-game-title--${escapeHtml(session.gameType)}" aria-label="${gameTitle}">${session.gameType === "dice" ? '<img src="/assets/game/dice-title.svg" alt="0의 주사위" />' : escapeHtml(gameTitle)}</div>
         <div class="room-identity">
           <span class="connection-dot" data-connection-dot></span>
-          <div><strong data-room-name>방 연결 중…</strong><span><b data-host-name>방장 확인 중</b> · 코드 <button type="button" data-copy-code>${escapeHtml(session.code)}</button></span></div>
-        </div>
-        <div class="room-members" aria-label="참여 중인 사람">
-          <div class="avatar-stack" data-avatar-stack></div>
-          <strong data-member-count>1명</strong>
+          <div><strong data-room-name>방 연결 중…</strong><span data-host-name>방장 확인 중</span></div>
+          <button class="room-code-button" type="button" data-copy-code><small>코드복사</small>${escapeHtml(session.code)}</button>
         </div>
         <button class="chat-mobile-toggle" type="button" aria-label="채팅 열기" data-chat-toggle>💬</button>
-        <button class="room-leave" type="button" data-room-leave>나가기</button>
       </header>
       <aside class="chat-panel" aria-label="방 채팅">
-        <header><div><strong>채팅</strong><span data-chat-status>연결 중…</span></div><button type="button" class="chat-close" aria-label="채팅 닫기" data-chat-close>×</button></header>
+        <header><div class="chat-heading"><strong>채팅</strong><span class="chat-member-count">(<b data-member-count>1명</b> 참여 중)</span><span class="sr-only" data-chat-status>연결 중…</span></div><div class="room-members" aria-label="참여 중인 사람"><div class="avatar-stack" data-avatar-stack></div></div><button type="button" class="chat-close" aria-label="채팅 닫기" data-chat-close>×</button></header>
         <div class="chat-messages" data-chat-messages aria-live="polite"><p class="chat-empty">방에 연결되면 대화를 시작할 수 있어요.</p></div>
         <div class="emoji-picker" data-emoji-picker hidden>
           <div class="emoji-picker__head"><strong>하면해 이모티콘</strong><button type="button" aria-label="이모티콘 닫기" data-emoji-close>×</button></div>
           <div class="emoji-grid">${EMOJIS.map(([key, label]) => `<button type="button" title="${label}" aria-label="${label}" data-emoji-key="${key}"><img src="/assets/emojis/${key}.png" alt="" /><span>${label}</span></button>`).join("")}</div>
         </div>
         <form class="chat-compose" data-chat-form>
-          <button class="emoji-button" type="button" aria-label="이모티콘" title="하면해 이모티콘 열기" data-emoji>☺</button>
-          <input maxlength="500" autocomplete="off" placeholder="메시지를 입력하세요" aria-label="채팅 메시지" data-chat-input />
-          <button class="chat-send" type="submit" aria-label="메시지 보내기">↑</button>
+          <button class="emoji-button" type="button" aria-label="이모티콘" title="하면해 이모티콘 열기" data-emoji><img src="/assets/game/emoji-icon.svg" alt="" /></button>
+          <div class="chat-input-shell"><input maxlength="500" autocomplete="off" placeholder="메시지를 입력하세요" aria-label="채팅 메시지" data-chat-input /><button class="chat-send" type="submit" aria-label="메시지 보내기"><img src="/assets/game/send-icon.svg" alt="" /></button></div>
         </form>
       </aside>`);
     document.querySelector("[data-room-leave]").addEventListener("click", leave);
@@ -386,8 +385,8 @@
     const inviteUrl = `${window.location.origin}/room/${encodeURIComponent(session.code)}`;
     try {
       await navigator.clipboard.writeText(inviteUrl);
-      button.textContent = "초대 링크 복사됨!";
-      window.setTimeout(() => { button.textContent = session?.code ?? button.textContent; }, 1200);
+      button.innerHTML = '<small>복사완료</small>' + escapeHtml(session?.code ?? "");
+      window.setTimeout(() => { button.innerHTML = '<small>코드복사</small>' + escapeHtml(session?.code ?? ""); }, 1200);
     } catch {
       showChatNotice(`초대 링크: ${inviteUrl}`);
     }

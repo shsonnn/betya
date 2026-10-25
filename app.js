@@ -121,7 +121,7 @@ function renderHome() {
   });
 }
 
-function pageShell(theme, title, subtitle, setupMarkup, resultMarkup) {
+function pageShell(theme, title, subtitle, setupMarkup, resultMarkup, actionMarkup = "") {
   app.innerHTML = `
     <section class="game-page theme-${theme}">
       <div class="game-heading">
@@ -129,8 +129,8 @@ function pageShell(theme, title, subtitle, setupMarkup, resultMarkup) {
         <button class="back-button" type="button" aria-label="방 나가기" data-back>방 나가기</button>
       </div>
       <div class="workspace">
-        <section class="panel">${setupMarkup}</section>
-        <section class="panel result-panel">${resultMarkup}</section>
+        <div class="game-settings-frame"><section class="panel settings-panel">${setupMarkup}</section></div>
+        <section class="panel result-panel"><div class="result-stage-wrap">${resultMarkup}</div>${actionMarkup}</section>
       </div>
     </section>`;
   document.querySelector("[data-back]").addEventListener("click", () => window.BetyaRoom?.leave());
@@ -141,7 +141,7 @@ function entryMarkup({ title, helper, placeholder, type, items, extra = "", butt
     <h2>${title}</h2>
     <p class="helper">${helper}</p>
     <div class="entry-row">
-      <input class="text-input" data-entry-input type="text" placeholder="${placeholder}" autocomplete="off" />
+      <span class="sketch-input-frame"><input class="text-input" data-entry-input type="text" placeholder="${placeholder}" autocomplete="off" /></span>
       <button class="mini-button" type="button" data-entry-add>${buttonText}</button>
     </div>
     <div class="chip-list" data-chip-list>${chipMarkup(items, type)}</div>
@@ -208,11 +208,11 @@ function renderPick() {
 
   const extra = `
     <label class="field-label" for="pick-count">몇 명을 뽑을까요?</label>
-    <div class="split-control"><span>당첨 인원</span><input id="pick-count" class="number-input" type="number" min="1" max="${max}" value="${currentCount}" /></div>
-    <button class="primary-button" type="button" data-pick ${state.pick.items.length && !state.pick.isSpinning && !pickDirty ? "" : "disabled"}>${state.pick.isSpinning ? "두근두근…" : state.pick.winners.length ? "다시 뽑기" : "랜덤으로 뽑기"}</button>`;
+    <div class="split-control"><span>당첨 인원</span><span class="sketch-input-frame sketch-input-frame--number"><input id="pick-count" class="number-input" type="number" min="1" max="${max}" value="${currentCount}" /></span></div>`;
+  const action = `<button class="primary-button" type="button" data-pick ${state.pick.items.length && !state.pick.isSpinning && !pickDirty ? "" : "disabled"}><span>${state.pick.isSpinning ? "두근두근…" : state.pick.winners.length ? "다시 뽑기" : "랜덤으로 뽑기"}</span></button>`;
 
   pageShell("pick", "아무나 걸려라", "그냥 아묻따 랜덤 뽑기 ㄷㄷ", 
-    entryMarkup({ title: "뽑을 항목", helper: "쉼표로 여러 개를 한 번에 추가할 수도 있어요.", placeholder: "예: 민수, 지연, 현우", type: "pick", items: state.pick.items, extra }), result);
+    entryMarkup({ title: "뽑을 항목", helper: "쉼표로 여러 개를 한 번에 추가할 수도 있어요.", placeholder: "예: 민수, 지연, 현우", type: "pick", items: state.pick.items, extra }), result, action);
 
   bindEntry("pick", renderPick);
   const countInput = document.querySelector("#pick-count");
@@ -248,15 +248,15 @@ function renderTeam() {
   const pairs = state.team.pairs.map((pair, index) => `<div class="pair-item"><span>${escapeHtml(pair[0])} ↔ ${escapeHtml(pair[1])}</span><button type="button" data-remove-pair="${index}">삭제</button></div>`).join("");
   const extra = `
     <label class="field-label" for="team-count">나눌 팀 개수</label>
-    <div class="split-control split-control--number"><input id="team-count" class="number-input" type="number" min="2" max="${maxTeams}" value="${teamCount}" aria-label="나눌 팀 개수" /></div>
+    <div class="split-control split-control--number"><span class="sketch-input-frame sketch-input-frame--number"><input id="team-count" class="number-input" type="number" min="2" max="${maxTeams}" value="${teamCount}" aria-label="나눌 팀 개수" /></span></div>
     <label class="field-label">절대 같은 팀이면 안 되는 사람</label>
     <div class="pair-row">
-      <select class="select-input" data-pair-a aria-label="첫 번째 사람"><option value="">사람 1</option>${options}</select>
-      <select class="select-input" data-pair-b aria-label="두 번째 사람"><option value="">사람 2</option>${options}</select>
+      <span class="sketch-input-frame sketch-input-frame--select"><select class="select-input" data-pair-a aria-label="첫 번째 사람"><option value="">사람 1</option>${options}</select></span>
+      <span class="sketch-input-frame sketch-input-frame--select"><select class="select-input" data-pair-b aria-label="두 번째 사람"><option value="">사람 2</option>${options}</select></span>
       <button class="mini-button" type="button" data-add-pair>설정</button>
     </div>
-    <div class="pair-list">${pairs}</div>
-    <button class="primary-button" type="button" data-make-teams ${state.team.people.length >= 2 && !state.team.isSpinning && !teamDirty ? "" : "disabled"}>${state.team.isSpinning ? "팀을 섞는 중…" : state.team.teams.length ? "다시 나누기" : "팀 나누기"}</button>`;
+    <div class="pair-list">${pairs}</div>`;
+  const action = `<button class="primary-button" type="button" data-make-teams ${state.team.people.length >= 2 && !state.team.isSpinning && !teamDirty ? "" : "disabled"}><span>${state.team.isSpinning ? "팀을 섞는 중…" : state.team.teams.length ? "다시 나누기" : "팀 나누기"}</span></button>`;
 
   let result = emptyResult("🙌", "팀이 만들어질 자리예요", "이름을 두 명 이상 추가한 뒤 팀을 나눠주세요.");
   if (state.team.isSpinning) {
@@ -269,7 +269,7 @@ function renderTeam() {
   }
 
   pageShell("team", "팀 나누기", "아 팀전으로 가면가~", 
-    entryMarkup({ title: "참가자 이름", helper: "같은 이름은 한 번만 추가돼요.", placeholder: "이름을 입력하고 Enter", type: "team", items: state.team.people, extra }), result);
+    entryMarkup({ title: "참가자 이름", helper: "같은 이름은 한 번만 추가돼요.", placeholder: "이름을 입력하고 Enter", type: "team", items: state.team.people, extra }), result, action);
 
   bindEntry("team", renderTeam);
   const teamInput = document.querySelector("#team-count");
