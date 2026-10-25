@@ -1,5 +1,5 @@
 :root {
-  font-family: "Pretendard", "Noto Sans KR", system-ui, sans-serif;
+  font-family: "MemomentKkukkukk", sans-serif;
   font-synthesis: none;
   --black: #010412;
   --title: #1c202d;
@@ -54,6 +54,7 @@ button { -webkit-tap-highlight-color: transparent; }
 h1 {
   margin: 0;
   color: var(--title);
+  font-family: "Pretendard", "Noto Sans KR", system-ui, sans-serif;
   font-size: clamp(2.7rem, 3.15vw, 3.75rem);
   font-weight: 800;
   line-height: 1.3;

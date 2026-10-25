@@ -32,6 +32,7 @@
 }
 .room-dialog.room-dialog .room-dialog-heading { height: 32px; margin: 0; gap: 16px; }
 .room-dialog.room-dialog .room-dialog-heading h2 { font: 700 30px/1.3 "KEDU Home", sans-serif; }
+.room-dialog[data-mode="join"] .room-dialog-heading h2 { font-family: "MemomentKkukkukk", sans-serif; }
 .room-dialog-title-art { display: block; width: 170px; height: 29.3275px; }
 .room-dialog.room-dialog .room-dialog-close { position: relative; flex: 0 0 32px; width: 32px; height: 32px; padding: 0; border: 0; border-radius: 0; background: transparent; }
 .room-dialog-close img { position: absolute; top: -9.04px; left: -8.944px; max-width: none; }
