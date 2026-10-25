@@ -326,6 +326,10 @@ export default {
     const url = new URL(request.url);
     try {
       if (url.pathname.startsWith("/api/")) return await handleApi(request, env);
+      const invitePath = url.pathname.match(/^\/room\/([2-9A-HJ-NP-Z]{8})\/?$/i);
+      if (invitePath && (request.method === "GET" || request.method === "HEAD")) {
+        return Response.redirect(new URL(`/?invite=${invitePath[1].toUpperCase()}`, url), 302);
+      }
       return env.ASSETS.fetch(request);
     } catch (error) {
       const message = error instanceof Error ? error.message : "잠시 후 다시 시도해주세요.";

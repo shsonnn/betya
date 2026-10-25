@@ -393,7 +393,7 @@
   async function copyInviteLink(event) {
     // currentTarget is null once the click dispatch is over, so read it first.
     const button = event.currentTarget;
-    const inviteUrl = roomState?.room?.invite_url || `${window.location.origin}/room/${session.code}`;
+    const inviteUrl = `${window.location.origin}/room/${encodeURIComponent(session.code)}`;
     try {
       await navigator.clipboard.writeText(inviteUrl);
       button.textContent = "초대 링크 복사됨!";
