@@ -25,6 +25,25 @@ let playerNames = Array(playerCount).fill("");
 let results = Array(playerCount).fill(null);
 let gameFinished = false;
 let isRolling = false;
+let remoteRevision = -1;
+let remoteRollTimer = null;
+let nameSyncTimer = null;
+
+function inRoom() {
+  return Boolean(window.BetyaRoom?.session());
+}
+
+function isGuest() {
+  return inRoom() && !window.BetyaRoom.isHost();
+}
+
+function sendDiceSetup() {
+  if (!inRoom() || isGuest()) return;
+  window.clearTimeout(nameSyncTimer);
+  nameSyncTimer = window.setTimeout(() => {
+    window.BetyaRoom.send("game.configure", { player_count: playerCount, names: playerNames });
+  }, 220);
+}
 
 function getPlayerName(index) {
   return playerNames[index].trim() || `${index + 1}번`;
@@ -38,7 +57,7 @@ function createPlayerCards() {
   playersElement.innerHTML = results.map((result, index) => `
     <li class="player${index === currentPlayer ? " is-current" : ""}" data-player="${index}">
       <input class="player-name" data-name-index="${index}" value="${escapeHtml(playerNames[index])}"
-        placeholder="이름을 입력하세요" aria-label="${index + 1}번 참가자 이름" maxlength="8" spellcheck="false" />
+        placeholder="이름을 입력하세요" aria-label="${index + 1}번 참가자 이름" maxlength="8" spellcheck="false" ${isGuest() ? "disabled" : ""} />
       <strong>${result ? result.lastDigit : "--"}</strong>
     </li>`).join("");
 
@@ -49,8 +68,10 @@ function createPlayerCards() {
 }
 
 function handleNameChange(event) {
+  if (isGuest()) return;
   const index = Number(event.currentTarget.dataset.nameIndex);
   playerNames[index] = event.currentTarget.value;
+  if (inRoom()) sendDiceSetup();
   if (gameFinished) finishGame();
   else if (index === currentPlayer) {
     turnLabel.textContent = `${getPlayerName(currentPlayer)} 차례`;
@@ -113,10 +134,10 @@ function setDieValue(element, value, announce = true) {
 
 function setInteractionLocked(locked) {
   isRolling = locked;
-  rollButton.disabled = locked;
-  decreasePlayersButton.disabled = locked || playerCount === MIN_PLAYERS;
-  increasePlayersButton.disabled = locked || playerCount === MAX_PLAYERS;
-  document.querySelectorAll(".player-name").forEach((input) => { input.disabled = locked; });
+  rollButton.disabled = locked || isGuest();
+  decreasePlayersButton.disabled = locked || isGuest() || playerCount === MIN_PLAYERS;
+  increasePlayersButton.disabled = locked || isGuest() || playerCount === MAX_PLAYERS;
+  document.querySelectorAll(".player-name").forEach((input) => { input.disabled = locked || isGuest(); });
 }
 
 function updatePlayerCards(losers = []) {
@@ -168,7 +189,7 @@ function resetGame() {
 }
 
 function changePlayerCount(amount) {
-  if (isRolling) return;
+  if (isRolling || isGuest()) return;
   const nextCount = Math.min(MAX_PLAYERS, Math.max(MIN_PLAYERS, playerCount + amount));
   if (nextCount === playerCount) return;
   if (nextCount > playerCount) {
@@ -182,9 +203,16 @@ function changePlayerCount(amount) {
   currentPlayer = 0;
   createPlayerCards();
   resetGame();
+  sendDiceSetup();
 }
 
 function rollDice() {
+  if (inRoom()) {
+    if (isGuest() || isRolling) return;
+    const sent = window.BetyaRoom.send(gameFinished ? "game.reset" : "game.roll");
+    if (!sent) hint.textContent = "방 연결을 확인한 뒤 다시 시도해주세요.";
+    return;
+  }
   if (isRolling) return;
   if (gameFinished) { resetGame(); return; }
   setInteractionLocked(true);
@@ -216,6 +244,66 @@ function rollDice() {
   }, ROLL_DURATION);
 }
 
+function applyRemoteDice(game, animate = false) {
+  if (!game || game.type !== "dice") return;
+  const previousRevision = remoteRevision;
+  if (game.revision < previousRevision) return;
+  remoteRevision = game.revision;
+  window.clearTimeout(remoteRollTimer);
+  const count = Math.min(MAX_PLAYERS, Math.max(MIN_PLAYERS, Number(game.player_count) || 6));
+  const names = Array.isArray(game.names) ? game.names.slice(0, count) : [];
+  while (names.length < count) names.push("");
+  const keepHostInput = !animate && !isGuest() && document.activeElement?.classList.contains("player-name")
+    && count === playerCount && game.status === "idle";
+  playerCount = count;
+  playerNames = names;
+  playerCountElement.textContent = `${count}명`;
+  const reveal = () => {
+    results = Array.isArray(game.rolls) ? game.rolls.slice(0, count) : Array(count).fill(null);
+    while (results.length < count) results.push(null);
+    currentPlayer = Math.min(count - 1, Number(game.current_index) || 0);
+    gameFinished = game.status === "complete";
+    if (!keepHostInput) createPlayerCards();
+    if (gameFinished) {
+      finishGame();
+    } else {
+      document.body.classList.remove("is-finished");
+      resultStage.hidden = true;
+      resultStage.replaceChildren();
+      turnLabel.classList.remove("is-result");
+      turnLabel.textContent = `${getPlayerName(currentPlayer)} 차례`;
+      buttonLabel.textContent = "굴리기";
+      hint.textContent = `${getPlayerName(currentPlayer)} 차례 · 슬롯이 멈춘 점의 개수가 결과예요`;
+      updatePlayerCards();
+    }
+    const last = game.last_roll;
+    if (last) {
+      setDieValue(dieOne, last.first);
+      setDieValue(dieTwo, last.second);
+    } else {
+      setDieValue(dieOne, 1);
+      setDieValue(dieTwo, 1);
+    }
+    dieOneRig.classList.remove("is-rolling");
+    dieTwoRig.classList.remove("is-rolling");
+    setInteractionLocked(false);
+  };
+  if (animate && game.last_roll && game.revision > previousRevision) {
+    if (!keepHostInput) createPlayerCards();
+    currentPlayer = game.last_roll.index;
+    updatePlayerCards();
+    turnLabel.textContent = `${getPlayerName(currentPlayer)} 굴리는 중…`;
+    buttonLabel.textContent = "굴러가는 중…";
+    hint.textContent = "주사위 면이 멈추면 결과가 공개돼요";
+    setInteractionLocked(true);
+    dieOneRig.classList.add("is-rolling");
+    dieTwoRig.classList.add("is-rolling");
+    spinDie(dieOne, game.last_roll.first, "up");
+    spinDie(dieTwo, game.last_roll.second, "down");
+    remoteRollTimer = window.setTimeout(reveal, Math.max(0, Number(game.animation_until_ms) - Date.now()));
+  } else reveal();
+}
+
 createPlayerCards();
 createDiceFaces(dieOne);
 createDiceFaces(dieTwo);
@@ -227,3 +315,14 @@ increasePlayersButton.addEventListener("click", () => changePlayerCount(1));
 homeButton.addEventListener("click", () => {
   window.BetyaRoom?.leave();
 });
+document.addEventListener("betya-game", (event) => {
+  const detail = event.detail;
+  const game = detail?.payload?.game;
+  const pendingRoll = detail?.type === "game.snapshot" && game?.last_roll && game.animation_until_ms > Date.now();
+  applyRemoteDice(game, detail?.type === "game.rolled" || pendingRoll);
+});
+if (inRoom()) {
+  const game = window.BetyaRoom.state()?.game;
+  if (game) applyRemoteDice(game);
+  else setInteractionLocked(true);
+}

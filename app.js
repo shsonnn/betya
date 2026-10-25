@@ -23,9 +23,55 @@ if (homePattern) {
 
 const state = {
   dice: { people: [], rolls: [] },
-  pick: { items: [], winners: [], isSpinning: false },
-  team: { people: [], pairs: [], teams: [], isSpinning: false },
+  pick: { items: [], winners: [], count: 1, isSpinning: false },
+  team: { people: [], pairs: [], teams: [], count: 2, isSpinning: false },
 };
+let remoteGameRevision = -1;
+let remoteAnimationId = 0;
+
+function inRoom() {
+  return Boolean(window.BetyaRoom?.session());
+}
+
+function isGuest() {
+  return inRoom() && !window.BetyaRoom.isHost();
+}
+
+function sendPickSetup() {
+  if (inRoom() && !isGuest()) window.BetyaRoom.send("game.configure", {
+    items: state.pick.items,
+    pick_count: clamp(state.pick.count, 1, Math.max(1, state.pick.items.length)),
+  });
+}
+
+function sendTeamSetup() {
+  if (inRoom() && !isGuest()) window.BetyaRoom.send("game.configure", {
+    people: state.team.people,
+    team_count: clamp(state.team.count, 2, Math.max(2, state.team.people.length)),
+    pairs: state.team.pairs,
+  });
+}
+
+function lockGuestControls() {
+  if (!isGuest()) return;
+  document.querySelectorAll(".game-page input, .game-page select, .game-page .mini-button, .game-page .chip button, .game-page .pair-item button, .game-page .primary-button")
+    .forEach((control) => { control.disabled = true; });
+}
+
+function renderPreservingEntry(render) {
+  const active = !isGuest() && document.activeElement?.matches("[data-entry-input]")
+    ? document.activeElement : null;
+  const draft = active?.value;
+  const selectionStart = active?.selectionStart;
+  const selectionEnd = active?.selectionEnd;
+  render();
+  if (active) {
+    const input = document.querySelector("[data-entry-input]");
+    input.value = draft;
+    input.focus();
+    if (selectionStart !== null && selectionEnd !== null) input.setSelectionRange(selectionStart, selectionEnd);
+  }
+}
 
 const diceFaces = ["⚀", "⚁", "⚂", "⚃", "⚄", "⚅"];
 const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -102,6 +148,7 @@ function chipMarkup(items, type) {
 function bindEntry(type, rerender) {
   const input = document.querySelector("[data-entry-input]");
   const add = () => {
+    if (isGuest()) return;
     const values = input.value.split(/[,\n]/).map((value) => value.trim()).filter(Boolean);
     if (!values.length) return;
     const target = type === "pick" ? state.pick.items : type === "team" ? state.team.people : state.dice.people;
@@ -111,6 +158,8 @@ function bindEntry(type, rerender) {
     input.value = "";
     rerender();
     document.querySelector("[data-entry-input]")?.focus();
+    if (type === "pick") sendPickSetup();
+    else if (type === "team") sendTeamSetup();
   };
   document.querySelector("[data-entry-add]").addEventListener("click", add);
   input.addEventListener("keydown", (event) => {
@@ -121,6 +170,7 @@ function bindEntry(type, rerender) {
   });
   document.querySelectorAll(`[data-remove-${type}]`).forEach((button) => {
     button.addEventListener("click", () => {
+      if (isGuest()) return;
       const index = Number(button.dataset[`remove${capitalize(type)}`]);
       if (type === "pick") state.pick.items.splice(index, 1);
       if (type === "dice") state.dice.people.splice(index, 1);
@@ -130,13 +180,15 @@ function bindEntry(type, rerender) {
         state.team.pairs = state.team.pairs.filter((pair) => !pair.includes(removed));
       }
       rerender();
+      if (type === "pick") sendPickSetup();
+      else if (type === "team") sendTeamSetup();
     });
   });
 }
 
 function renderPick() {
   const max = Math.max(1, state.pick.items.length);
-  const currentCount = Math.min(Number(sessionStorage.getItem("pick-count")) || 1, max);
+  const currentCount = Math.min(inRoom() ? state.pick.count : Number(sessionStorage.getItem("pick-count")) || 1, max);
   let result = emptyResult("🎯", "아직 아무도 안 걸렸어요", "항목을 넣고 뽑기 버튼을 눌러주세요.");
   if (state.pick.isSpinning) result = rouletteMarkup("누가 걸릴까요?", "입력한 항목들을 신나게 섞는 중이에요");
   else if (state.pick.winners.length) {
@@ -155,25 +207,33 @@ function renderPick() {
   bindEntry("pick", renderPick);
   const countInput = document.querySelector("#pick-count");
   countInput.addEventListener("change", () => {
+    if (isGuest()) return;
     const safe = clamp(Number(countInput.value) || 1, 1, max);
     countInput.value = safe;
+    state.pick.count = safe;
     sessionStorage.setItem("pick-count", safe);
+    sendPickSetup();
   });
   document.querySelector("[data-pick]").addEventListener("click", async () => {
+    if (inRoom()) {
+      if (!isGuest() && !window.BetyaRoom.send("game.draw")) toast("방 연결을 확인해주세요.");
+      return;
+    }
     const count = clamp(Number(countInput.value) || 1, 1, state.pick.items.length);
     const winners = shuffle([...state.pick.items]).slice(0, count);
     state.pick.isSpinning = true;
-    renderPick();
+    renderPreservingEntry(renderPick);
     await animateRoulette(state.pick.items);
     state.pick.winners = winners;
     state.pick.isSpinning = false;
     renderPick();
   });
+  lockGuestControls();
 }
 
 function renderTeam() {
   const maxTeams = Math.max(2, state.team.people.length || 2);
-  const teamCount = clamp(Number(sessionStorage.getItem("team-count")) || 2, 2, maxTeams);
+  const teamCount = clamp(inRoom() ? state.team.count : Number(sessionStorage.getItem("team-count")) || 2, 2, maxTeams);
   const options = state.team.people.map((name) => `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`).join("");
   const pairs = state.team.pairs.map((pair, index) => `<div class="pair-item"><span>${escapeHtml(pair[0])} ↔ ${escapeHtml(pair[1])}</span><button type="button" data-remove-pair="${index}">삭제</button></div>`).join("");
   const extra = `
@@ -204,24 +264,35 @@ function renderTeam() {
   bindEntry("team", renderTeam);
   const teamInput = document.querySelector("#team-count");
   teamInput.addEventListener("change", () => {
+    if (isGuest()) return;
     const safe = clamp(Number(teamInput.value) || 2, 2, maxTeams);
     teamInput.value = safe;
+    state.team.count = safe;
     sessionStorage.setItem("team-count", safe);
+    sendTeamSetup();
   });
   document.querySelector("[data-add-pair]").addEventListener("click", () => {
+    if (isGuest()) return;
     const a = document.querySelector("[data-pair-a]").value;
     const b = document.querySelector("[data-pair-b]").value;
     if (!a || !b) return toast("두 사람을 모두 골라주세요.");
     if (a === b) return toast("서로 다른 두 사람을 골라주세요.");
     if (state.team.pairs.some((pair) => pair.includes(a) && pair.includes(b))) return toast("이미 설정한 조합이에요.");
     state.team.pairs.push([a, b]);
-    renderTeam();
+    renderPreservingEntry(renderTeam);
+    sendTeamSetup();
   });
   document.querySelectorAll("[data-remove-pair]").forEach((button) => button.addEventListener("click", () => {
+    if (isGuest()) return;
     state.team.pairs.splice(Number(button.dataset.removePair), 1);
     renderTeam();
+    sendTeamSetup();
   }));
   document.querySelector("[data-make-teams]").addEventListener("click", async () => {
+    if (inRoom()) {
+      if (!isGuest() && !window.BetyaRoom.send("game.divide")) toast("방 연결을 확인해주세요.");
+      return;
+    }
     const count = clamp(Number(teamInput.value) || 2, 2, state.team.people.length);
     const teams = makeBestTeams(state.team.people, count, state.team.pairs);
     state.team.isSpinning = true;
@@ -231,6 +302,7 @@ function renderTeam() {
     state.team.isSpinning = false;
     renderTeam();
   });
+  lockGuestControls();
 }
 
 function rouletteMarkup(title, copy) {
@@ -242,10 +314,11 @@ function rouletteMarkup(title, copy) {
   </div>`;
 }
 
-async function animateRoulette(values) {
+async function animateRoulette(values, isCurrent = () => true) {
   const sequence = shuffle([...values, ...values, ...values]);
   const frameCount = reducedMotion ? 2 : Math.min(22, Math.max(14, sequence.length));
   for (let index = 0; index < frameCount; index += 1) {
+    if (!isCurrent()) return;
     const value = document.querySelector("[data-roulette-value]");
     if (value) {
       value.classList.remove("is-changing");
@@ -256,6 +329,41 @@ async function animateRoulette(values) {
     const progress = frameCount <= 1 ? 1 : index / (frameCount - 1);
     const delay = reducedMotion ? 40 : Math.round(48 + Math.pow(progress, 2.7) * 300);
     await wait(delay);
+  }
+}
+
+function applyRoomGame(detail) {
+  const game = detail?.payload?.game;
+  if (!inRoom() || !game || game.revision < remoteGameRevision) return;
+  remoteGameRevision = game.revision;
+  const animationId = ++remoteAnimationId;
+  if (game.type === "random_pick") {
+    state.pick.items = [...(game.items || [])];
+    state.pick.count = game.pick_count || 1;
+    state.pick.winners = [...(game.winners || [])];
+    const reveal = (detail.type === "game.drawn" || detail.type === "game.snapshot") && game.animation_until_ms > Date.now();
+    state.pick.isSpinning = reveal;
+    renderPreservingEntry(renderPick);
+    if (reveal) animateRoulette(state.pick.items, () => animationId === remoteAnimationId)
+      .then(() => {
+        if (animationId !== remoteAnimationId) return;
+        state.pick.isSpinning = false;
+        renderPick();
+      });
+  } else if (game.type === "teams") {
+    state.team.people = [...(game.people || [])];
+    state.team.count = game.team_count || 2;
+    state.team.pairs = (game.pairs || []).map((pair) => [...pair]);
+    state.team.teams = (game.teams || []).map((team) => [...team]);
+    const reveal = (detail.type === "game.divided" || detail.type === "game.snapshot") && game.animation_until_ms > Date.now();
+    state.team.isSpinning = reveal;
+    renderPreservingEntry(renderTeam);
+    if (reveal) animateRoulette(state.team.people, () => animationId === remoteAnimationId)
+      .then(() => {
+        if (animationId !== remoteAnimationId) return;
+        state.team.isSpinning = false;
+        renderTeam();
+      });
   }
 }
 
@@ -357,3 +465,7 @@ function escapeHtml(value) {
 }
 
 if (window.BetyaRoom?.hasSession()) renderRoute();
+document.addEventListener("betya-game", (event) => applyRoomGame(event.detail));
+if (inRoom() && window.BetyaRoom.state()?.game) {
+  applyRoomGame({ type: "game.snapshot", payload: { game: window.BetyaRoom.state().game } });
+}

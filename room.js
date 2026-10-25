@@ -1,12 +1,4 @@
-// Drop-in replacement for the frontend's room.js that talks to the Python
-// backend at https://betya-api.toxcap.com. The markup, CSS classes and
-// window.BetyaRoom entry points of the original file are kept; the transport
-// changes are:
-//   - REST calls go to the API origin with credentials: "include"; the session
-//     lives in an HttpOnly cookie, so no token is stored in sessionStorage.
-//   - The WebSocket uses /api/rooms/{code}/ws and the {type, payload} envelope.
-//   - Invitation links /room/{code} (or /?invite={code}) open the join form
-//     with the code filled in; the password field only shows for private rooms.
+// Room and game state are served by the same-origin Durable Object backend.
 (() => {
   const STORAGE_KEY = "betya.room.session";
   const API_BASE = resolveApiBase();
@@ -54,12 +46,7 @@
   function resolveApiBase() {
     const configured = document.querySelector('meta[name="betya-api-base"]')?.content;
     if (configured) return configured.replace(/\/$/, "");
-    // Local development: frontend and API must use the same host name so the
-    // SameSite=Strict session cookie is sent.
-    if (["localhost", "127.0.0.1"].includes(window.location.hostname)) {
-      return `${window.location.protocol}//${window.location.hostname}:8787`;
-    }
-    return "https://betya-api.toxcap.com";
+    return window.location.origin;
   }
 
   function readSession() {
@@ -487,6 +474,7 @@
         if (me && session) saveSession({ ...session, playerId: me.player_id, name: me.nickname, role: me.is_host ? "host" : "guest" });
         updateRoomHeader();
         document.dispatchEvent(new CustomEvent("betya-room-ready", { detail: payload.room }));
+        document.dispatchEvent(new CustomEvent("betya-game", { detail: { type: "game.snapshot", payload: { game: payload.game } } }));
         break;
       }
       case "player.joined":
@@ -506,6 +494,7 @@
         }
         if (session && payload.host_player_id === session.playerId) saveSession({ ...session, role: "host" });
         updateRoomHeader();
+        if (roomState?.game) document.dispatchEvent(new CustomEvent("betya-game", { detail: { type: "game.snapshot", payload: { game: roomState.game } } }));
         showChatNotice(`${payload.nickname}님이 새 방장이에요.`);
         break;
       case "chat.message":
@@ -650,9 +639,8 @@
     list.scrollTop = list.scrollHeight;
   }
 
-  // Game pages can call BetyaRoom.send("game.roll") etc. and listen for the
-  // "betya-game" DOM event, whose detail is the server event envelope.
-  window.BetyaRoom = { hasSession, leave, session: () => session, state: () => roomState, send };
+  // Game pages use the room snapshot and game events as their shared source of truth.
+  window.BetyaRoom = { hasSession, leave, session: () => session, state: () => roomState, send, isHost: () => session?.role === "host" };
 
   const inviteCode = inviteCodeFromUrl();
   if (!inviteCode && new URLSearchParams(location.search).get("solo") === "1") return;
