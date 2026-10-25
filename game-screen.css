@@ -336,7 +336,21 @@ body.room-active .workspace,
 .sketch-input-frame--number { flex: none; width: 88px; }
 .split-control--number .sketch-input-frame--number { flex: 1; width: 100%; }
 .entry-row { gap: 8px; }
-.chip-list { background: transparent; border: 1.5px solid #cacddb; border-radius: 8px; }
+.chip-list {
+  --sketch-color: #cacddb;
+  --sketch-width: 1.5;
+  position: relative;
+  background: transparent;
+  border: 1.5px solid #cacddb;
+  border-radius: 8px;
+}
+.chip-list.has-sketch-outline { border-color: transparent; }
+.chip-list-empty {
+  align-self: center;
+  margin: auto;
+  color: #aaaab4;
+  font-size: 14px;
+}
 .chip {
   --sketch-color: var(--accent);
   --sketch-width: 1.25;

@@ -144,7 +144,7 @@ function entryMarkup({ title, helper, placeholder, type, items, extra = "", butt
       <span class="sketch-input-frame"><input class="text-input" data-entry-input type="text" placeholder="${placeholder}" autocomplete="off" /></span>
       <button class="mini-button" type="button" data-entry-add>${buttonText}</button>
     </div>
-    <div class="chip-list" data-chip-list>${chipMarkup(items, type)}</div>
+    <div class="chip-list" data-chip-list>${items.length ? chipMarkup(items, type) : '<span class="chip-list-empty">아직 추가된 항목이 없어요</span>'}</div>
     ${extra}`;
 }
 
