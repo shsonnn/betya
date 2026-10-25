@@ -30,7 +30,7 @@ let remoteRollTimer = null;
 let nameSyncTimer = null;
 
 function inRoom() {
-  return Boolean(window.BetyaRoom?.session());
+  return window.BetyaRoom?.session()?.backend === "room-v2";
 }
 
 function isGuest() {
@@ -316,6 +316,7 @@ homeButton.addEventListener("click", () => {
   window.BetyaRoom?.leave();
 });
 document.addEventListener("betya-game", (event) => {
+  if (!inRoom()) return;
   const detail = event.detail;
   const game = detail?.payload?.game;
   const pendingRoll = detail?.type === "game.snapshot" && game?.last_roll && game.animation_until_ms > Date.now();

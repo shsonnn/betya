@@ -30,7 +30,7 @@ let remoteGameRevision = -1;
 let remoteAnimationId = 0;
 
 function inRoom() {
-  return Boolean(window.BetyaRoom?.session());
+  return window.BetyaRoom?.session()?.backend === "room-v2";
 }
 
 function isGuest() {

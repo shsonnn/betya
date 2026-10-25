@@ -1,7 +1,6 @@
 // Room and game state are served by the same-origin Durable Object backend.
 (() => {
   const STORAGE_KEY = "betya.room.session";
-  const API_BASE = resolveApiBase();
   const GAME_PATHS = {
     dice: "/dice.html",
     pick: "/index.html#pick",
@@ -46,6 +45,9 @@
   function resolveApiBase() {
     const configured = document.querySelector('meta[name="betya-api-base"]')?.content;
     if (configured) return configured.replace(/\/$/, "");
+    // Rooms created before the realtime backend rollout keep their existing
+    // connection until everyone leaves; all new rooms use the same-origin API.
+    if (session && session.backend !== "room-v2") return "https://betya-api.toxcap.com";
     return window.location.origin;
   }
 
@@ -78,7 +80,7 @@
     window.clearTimeout(reconnectTimer);
     if (session) {
       // keepalive lets the request finish while the page navigates away.
-      fetch(`${API_BASE}/api/rooms/${encodeURIComponent(session.code)}/leave`, {
+      fetch(`${resolveApiBase()}/api/rooms/${encodeURIComponent(session.code)}/leave`, {
         method: "POST",
         credentials: "include",
         keepalive: true,
@@ -230,7 +232,7 @@
   async function api(path, options = {}) {
     const headers = { ...(options.headers || {}) };
     if (options.body) headers["content-type"] = "application/json";
-    const response = await fetch(`${API_BASE}${path}`, { ...options, headers, credentials: "include" });
+    const response = await fetch(`${resolveApiBase()}${path}`, { ...options, headers, credentials: "include" });
     const data = await response.json().catch(() => ({}));
     if (!response.ok) {
       const code = data.error?.code;
@@ -249,6 +251,7 @@
       name: player.nickname,
       gameType: API_TO_GAME_TYPE[room.game_type] || "pick",
       role: player.is_host ? "host" : "guest",
+      backend: "room-v2",
     };
   }
 
@@ -392,7 +395,7 @@
 
   function connect() {
     mountRoomChrome();
-    const wsBase = API_BASE.replace(/^http/, "ws");
+    const wsBase = resolveApiBase().replace(/^http/, "ws");
     socket = new WebSocket(`${wsBase}/api/rooms/${encodeURIComponent(session.code)}/ws`);
     let opened = false;
     setConnectionStatus("connecting");
