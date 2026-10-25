@@ -28,6 +28,7 @@ let isRolling = false;
 let remoteRevision = -1;
 let remoteRollTimer = null;
 let nameSyncTimer = null;
+let localSetupDirty = false;
 
 function inRoom() {
   return window.BetyaRoom?.session()?.backend === "room-v2";
@@ -39,6 +40,8 @@ function isGuest() {
 
 function sendDiceSetup() {
   if (!inRoom() || isGuest()) return;
+  localSetupDirty = true;
+  rollButton.disabled = true;
   window.clearTimeout(nameSyncTimer);
   nameSyncTimer = window.setTimeout(() => {
     window.BetyaRoom.send("game.configure", { player_count: playerCount, names: playerNames });
@@ -134,7 +137,7 @@ function setDieValue(element, value, announce = true) {
 
 function setInteractionLocked(locked) {
   isRolling = locked;
-  rollButton.disabled = locked || isGuest();
+  rollButton.disabled = locked || isGuest() || (inRoom() && localSetupDirty);
   decreasePlayersButton.disabled = locked || isGuest() || playerCount === MIN_PLAYERS;
   increasePlayersButton.disabled = locked || isGuest() || playerCount === MAX_PLAYERS;
   document.querySelectorAll(".player-name").forEach((input) => { input.disabled = locked || isGuest(); });
@@ -248,6 +251,17 @@ function applyRemoteDice(game, animate = false) {
   if (!game || game.type !== "dice") return;
   const previousRevision = remoteRevision;
   if (game.revision < previousRevision) return;
+  if (!isGuest() && localSetupDirty && game.status === "idle") {
+    const namesMatch = game.player_count === playerCount
+      && Array.isArray(game.names)
+      && game.names.every((name, index) => name === playerNames[index]);
+    if (!namesMatch) {
+      remoteRevision = game.revision;
+      sendDiceSetup();
+      return;
+    }
+    localSetupDirty = false;
+  }
   remoteRevision = game.revision;
   window.clearTimeout(remoteRollTimer);
   const count = Math.min(MAX_PLAYERS, Math.max(MIN_PLAYERS, Number(game.player_count) || 6));

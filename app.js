@@ -28,6 +28,8 @@ const state = {
 };
 let remoteGameRevision = -1;
 let remoteAnimationId = 0;
+let pickDirty = false;
+let teamDirty = false;
 
 function inRoom() {
   return window.BetyaRoom?.session()?.backend === "room-v2";
@@ -38,14 +40,22 @@ function isGuest() {
 }
 
 function sendPickSetup() {
-  if (inRoom() && !isGuest()) window.BetyaRoom.send("game.configure", {
+  if (!inRoom() || isGuest()) return;
+  pickDirty = true;
+  const button = document.querySelector("[data-pick]");
+  if (button) button.disabled = true;
+  window.BetyaRoom.send("game.configure", {
     items: state.pick.items,
     pick_count: clamp(state.pick.count, 1, Math.max(1, state.pick.items.length)),
   });
 }
 
 function sendTeamSetup() {
-  if (inRoom() && !isGuest()) window.BetyaRoom.send("game.configure", {
+  if (!inRoom() || isGuest()) return;
+  teamDirty = true;
+  const button = document.querySelector("[data-make-teams]");
+  if (button) button.disabled = true;
+  window.BetyaRoom.send("game.configure", {
     people: state.team.people,
     team_count: clamp(state.team.count, 2, Math.max(2, state.team.people.length)),
     pairs: state.team.pairs,
@@ -199,7 +209,7 @@ function renderPick() {
   const extra = `
     <label class="field-label" for="pick-count">몇 명을 뽑을까요?</label>
     <div class="split-control"><span>당첨 인원</span><input id="pick-count" class="number-input" type="number" min="1" max="${max}" value="${currentCount}" /></div>
-    <button class="primary-button" type="button" data-pick ${state.pick.items.length && !state.pick.isSpinning ? "" : "disabled"}>${state.pick.isSpinning ? "두근두근…" : state.pick.winners.length ? "다시 뽑기" : "랜덤으로 뽑기"}</button>`;
+    <button class="primary-button" type="button" data-pick ${state.pick.items.length && !state.pick.isSpinning && !pickDirty ? "" : "disabled"}>${state.pick.isSpinning ? "두근두근…" : state.pick.winners.length ? "다시 뽑기" : "랜덤으로 뽑기"}</button>`;
 
   pageShell("pick", "아무나 걸려라", "그냥 아묻따 랜덤 뽑기 ㄷㄷ", 
     entryMarkup({ title: "뽑을 항목", helper: "쉼표로 여러 개를 한 번에 추가할 수도 있어요.", placeholder: "예: 민수, 지연, 현우", type: "pick", items: state.pick.items, extra }), result);
@@ -246,7 +256,7 @@ function renderTeam() {
       <button class="mini-button" type="button" data-add-pair>설정</button>
     </div>
     <div class="pair-list">${pairs}</div>
-    <button class="primary-button" type="button" data-make-teams ${state.team.people.length >= 2 && !state.team.isSpinning ? "" : "disabled"}>${state.team.isSpinning ? "팀을 섞는 중…" : state.team.teams.length ? "다시 나누기" : "팀 나누기"}</button>`;
+    <button class="primary-button" type="button" data-make-teams ${state.team.people.length >= 2 && !state.team.isSpinning && !teamDirty ? "" : "disabled"}>${state.team.isSpinning ? "팀을 섞는 중…" : state.team.teams.length ? "다시 나누기" : "팀 나누기"}</button>`;
 
   let result = emptyResult("🙌", "팀이 만들어질 자리예요", "이름을 두 명 이상 추가한 뒤 팀을 나눠주세요.");
   if (state.team.isSpinning) {
@@ -335,6 +345,29 @@ async function animateRoulette(values, isCurrent = () => true) {
 function applyRoomGame(detail) {
   const game = detail?.payload?.game;
   if (!inRoom() || !game || game.revision < remoteGameRevision) return;
+  if (!isGuest() && detail.type !== "game.drawn" && detail.type !== "game.divided") {
+    if (game.type === "random_pick" && pickDirty) {
+      const matches = game.pick_count === clamp(state.pick.count, 1, Math.max(1, state.pick.items.length))
+        && JSON.stringify(game.items) === JSON.stringify(state.pick.items);
+      if (!matches) {
+        remoteGameRevision = game.revision;
+        sendPickSetup();
+        return;
+      }
+      pickDirty = false;
+    }
+    if (game.type === "teams" && teamDirty) {
+      const matches = game.team_count === clamp(state.team.count, 2, Math.max(2, state.team.people.length))
+        && JSON.stringify(game.people) === JSON.stringify(state.team.people)
+        && JSON.stringify(game.pairs) === JSON.stringify(state.team.pairs);
+      if (!matches) {
+        remoteGameRevision = game.revision;
+        sendTeamSetup();
+        return;
+      }
+      teamDirty = false;
+    }
+  }
   remoteGameRevision = game.revision;
   const animationId = ++remoteAnimationId;
   if (game.type === "random_pick") {
