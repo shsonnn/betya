@@ -77,13 +77,13 @@ body[data-route="home"] .brand img {
 body[data-route="home"] .home {
   position: relative;
   width: calc(1440 * var(--home-unit));
-  margin: 40px auto 0;
+  margin: calc(40px + 60 * var(--home-unit) + 16px) auto 0;
   padding-bottom: calc(120 * var(--home-unit));
 }
 body[data-route="home"] .home-actions {
   position: absolute;
-  top: calc(-80 * var(--home-unit));
-  left: calc(50% + 150.495 * var(--home-unit) + 40px);
+  top: calc(-60 * var(--home-unit) - 16px);
+  right: 0;
 }
 body[data-route="home"] .home-join-button {
   position: relative;
