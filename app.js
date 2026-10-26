@@ -36,7 +36,7 @@ function inRoom() {
 }
 
 function isGuest() {
-  return inRoom() && !window.BetyaRoom.isHost();
+  return Boolean(window.BetyaRoom?.session()) && !window.BetyaRoom.isHost();
 }
 
 function sendPickSetup() {
@@ -252,7 +252,7 @@ function renderPick() {
        <div class="winner-list">${state.pick.winners.map((name, index) => `<div class="winner" style="animation-delay:${index * 90}ms"><span>${index + 1}</span><strong>${escapeHtml(name)}</strong></div>`).join("")}</div>`;
   }
 
-  const action = `<button class="primary-button" type="button" data-pick ${state.pick.items.length && !state.pick.isSpinning && !pickDirty ? "" : "disabled"}><span>${state.pick.isSpinning ? "두근두근…" : state.pick.winners.length ? "다시 뽑기" : "바로 뽑아버려"}</span></button>`;
+  const action = isGuest() ? "" : `<button class="primary-button" type="button" data-pick ${state.pick.items.length && !state.pick.isSpinning && !pickDirty ? "" : "disabled"}><span>${state.pick.isSpinning ? "두근두근…" : state.pick.winners.length ? "다시 뽑기" : "바로 뽑아버려"}</span></button>`;
 
   pageShell("pick", "아무나 걸려라", "그냥 아묻따 랜덤 뽑기 ㄷㄷ", 
     stepperMarkup("당첨 인원", currentCount, "명", 1, max)
@@ -260,7 +260,7 @@ function renderPick() {
 
   bindEntry("pick", renderPick);
   bindCountStepper("pick", currentCount, 1, max);
-  document.querySelector("[data-pick]").addEventListener("click", async () => {
+  document.querySelector("[data-pick]")?.addEventListener("click", async () => {
     if (inRoom()) {
       if (!isGuest() && !window.BetyaRoom.send("game.draw")) toast("방 연결을 확인해주세요.");
       return;
@@ -290,7 +290,7 @@ function renderTeam() {
       <button class="mini-button" type="button" data-add-pair><span>적용</span></button>
     </div>
     <div class="pair-list">${pairs}</div></div>`;
-  const action = `<button class="primary-button" type="button" data-make-teams ${state.team.people.length >= 2 && !state.team.isSpinning && !teamDirty ? "" : "disabled"}><span>${state.team.isSpinning ? "팀을 섞는 중…" : state.team.teams.length ? "다시 나누기" : "팀 나누기"}</span></button>`;
+  const action = isGuest() ? "" : `<button class="primary-button" type="button" data-make-teams ${state.team.people.length >= 2 && !state.team.isSpinning && !teamDirty ? "" : "disabled"}><span>${state.team.isSpinning ? "팀을 섞는 중…" : state.team.teams.length ? "다시 나누기" : "팀 나누기"}</span></button>`;
 
   let result = emptyResult("./assets/game/team-empty.svg", "팀이 만들어질 자리예요", "인원을 두 명 이상 추가한 뒤 팀을 나눠주세요!");
   if (state.team.isSpinning) {
@@ -325,7 +325,7 @@ function renderTeam() {
     renderTeam();
     sendTeamSetup();
   }));
-  document.querySelector("[data-make-teams]").addEventListener("click", async () => {
+  document.querySelector("[data-make-teams]")?.addEventListener("click", async () => {
     if (inRoom()) {
       if (!isGuest() && !window.BetyaRoom.send("game.divide")) toast("방 연결을 확인해주세요.");
       return;
@@ -438,11 +438,11 @@ function renderDice() {
     : `<h2>두 번 굴리기</h2><p class="helper">모든 참가자가 주사위를 두 번씩 굴려요.</p>
        <div class="dice-stage"><div class="die" data-die-a>⚀</div><div class="die" data-die-b>⚀</div></div>
        <p class="dice-total">두 주사위의 합으로 승부합니다.</p>`;
-  const extra = `<button class="primary-button" type="button" data-roll ${state.dice.people.length ? "" : "disabled"}>${state.dice.rolls.length ? "다시 굴리기" : "모두 굴리기"}</button>`;
+  const extra = isGuest() ? "" : `<button class="primary-button" type="button" data-roll ${state.dice.people.length ? "" : "disabled"}>${state.dice.rolls.length ? "다시 굴리기" : "모두 굴리기"}</button>`;
   pageShell("dice", "0의 주사위", "두 번 굴려 더한 값이 가장 낮은 사람이 쏘기~!",
-    entryMarkup({ title: "참가자 이름", helper: "주사위를 굴릴 친구들을 추가해주세요.", placeholder: "이름을 입력하고 Enter", type: "dice", items: state.dice.people, extra }), result);
+    entryMarkup({ title: "참가자 이름", helper: "주사위를 굴릴 친구들을 추가해주세요.", placeholder: "이름을 입력하고 Enter", type: "dice", items: state.dice.people }), result, extra);
   bindEntry("dice", renderDice);
-  document.querySelector("[data-roll]").addEventListener("click", rollAllDice);
+  document.querySelector("[data-roll]")?.addEventListener("click", rollAllDice);
 }
 
 function rollAllDice() {

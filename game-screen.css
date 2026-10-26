@@ -702,6 +702,7 @@ body.is-finished .dice-panel .player:not(.is-loser) { opacity: .4; }
 .play-area .pip { width: 29px; height: 29px; background: #000; box-shadow: none; }
 .play-area .dice-floor-shadow { display: none; }
 .play-area .roll-button { --accent: #3e62ff; flex: none; }
+.play-area .roll-button[hidden] { display: none; }
 .play-area .dice-result-stage { margin: auto 0; }
 
 @media (max-width: 1200px) and (min-width: 901px) {

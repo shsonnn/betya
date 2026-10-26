@@ -510,7 +510,7 @@
           roomState.room.host_player_id = payload.host_player_id;
           roomState.players.forEach((player) => { player.is_host = player.player_id === payload.host_player_id; });
         }
-        if (session && payload.host_player_id === session.playerId) saveSession({ ...session, role: "host" });
+        if (session) saveSession({ ...session, role: payload.host_player_id === session.playerId ? "host" : "guest" });
         updateRoomHeader();
         if (roomState?.game) document.dispatchEvent(new CustomEvent("betya-game", { detail: { type: "game.snapshot", payload: { game: roomState.game } } }));
         showChatNotice(`${payload.nickname}님이 새 방장이에요.`);
