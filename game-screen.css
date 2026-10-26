@@ -114,7 +114,8 @@ body.room-active .room-code-button {
 }
 body.room-active .room-code-button.has-sketch-outline { border-color: transparent; }
 body.room-active .room-code-button small { color: #7f8394; font-size: 14px; }
-body.room-active .room-code-value { font-weight: 400; }
+body.room-active .room-code-value { font-weight: 400; transition: color 160ms ease; }
+body.room-active .room-code-button:hover .room-code-value { color: #3e62ff; }
 
 body.room-active .chat-panel {
   width: var(--chat-width);
@@ -688,14 +689,16 @@ body.is-finished .dice-panel .player:not(.is-loser) { opacity: .4; }
 .play-area .die-rig--two { left: calc(50% + 16px); top: 67px; transform: rotate(4.65deg); }
 .play-area .die-cube {
   --sketch-color: #111;
+  --sketch-fill: #fff;
   --sketch-width: 3;
   border: 3px solid #111;
   border-radius: 8px;
   background: #fff;
   box-shadow: 1px 1px 8px rgba(0,0,0,.1);
 }
-.play-area .die-cube.has-sketch-outline { border-color: transparent; }
-.play-area .die-window { border-radius: 5px; }
+.play-area .die-cube.has-sketch-outline { border: 0; background: transparent; }
+.play-area .die-cube > .sketch-outline { z-index: 0; }
+.play-area .die-window { z-index: 1; border-radius: 5px; }
 .play-area .pip { width: 29px; height: 29px; background: #000; box-shadow: none; }
 .play-area .dice-floor-shadow { display: none; }
 .play-area .roll-button { --accent: #3e62ff; flex: none; }
