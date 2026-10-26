@@ -11,8 +11,9 @@ body:not([data-route="home"]) { background: #f5f8fd; }
 body.room-active {
   --room-bar-height: 60px;
   --chat-width: 400px;
-  background: #f5f8fd;
+  background: #f8f7ff;
 }
+body.room-active.solo-active { --chat-width: 0px; }
 
 body.room-active .room-bar {
   right: var(--chat-width);
@@ -349,6 +350,7 @@ body.room-active .workspace,
 .dice-workspace { flex: none; }
 .game-settings-frame {
   --sketch-color: #111;
+  --sketch-fill: #fff;
   --sketch-width: 3;
   min-width: 0;
   min-height: 0;
@@ -359,8 +361,11 @@ body.room-active .workspace,
   border-radius: 8px;
   background: #fff;
 }
-.game-settings-frame.has-sketch-outline { border-color: transparent; }
+.game-settings-frame.has-sketch-outline { border-color: transparent; background: transparent; }
+.game-settings-frame > .sketch-outline { z-index: 0; }
 .game-settings-frame .settings-panel {
+  position: relative;
+  z-index: 1;
   width: 100%;
   height: 100%;
   min-height: 0;
@@ -369,7 +374,7 @@ body.room-active .workspace,
   overflow-y: auto;
   border: 0;
   border-radius: 5px;
-  background: #fff;
+  background: transparent;
   box-shadow: none;
   scrollbar-width: thin;
   scrollbar-color: #cacddb transparent;
@@ -387,6 +392,40 @@ body.room-active .workspace,
 .sketch-outline path { fill: var(--sketch-fill, none); stroke: var(--sketch-color, #111); stroke-width: var(--sketch-width, 1.5); }
 .panel h2 { color: #111; font: 400 20px/1.3 "MemomentKkukkukk", sans-serif; }
 .helper { margin: 8px 0 18px; color: #7f8394; font: 400 14px/1.3 "MemomentKkukkukk", sans-serif; }
+.theme-pick .settings-panel,
+.theme-team .settings-panel { display: flex; flex-direction: column; align-items: stretch; gap: 0; }
+.theme-team { --accent: #27b36a; }
+.game-count-control {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 50px;
+  margin-bottom: 20px;
+  padding: 4px;
+  font-family: "MemomentKkukkukk", sans-serif;
+}
+.game-count-control__label { color: #111; font-size: 20px; line-height: 1.3; }
+.game-count-control__stepper { display: flex; align-items: center; gap: 20px; }
+.game-count-control__stepper strong { min-width: 32px; color: #3e62ff; font-size: 24px; font-weight: 400; line-height: 1.3; text-align: center; }
+.game-stepper__button {
+  --sketch-color: #cacddb;
+  --sketch-fill: none;
+  --sketch-width: 1.5;
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  flex: none;
+  padding: 0;
+  border: 1.5px solid #cacddb;
+  border-radius: 50%;
+  background: #fff;
+  cursor: pointer;
+}
+.game-stepper__button.has-sketch-outline { border-color: transparent; }
+.game-stepper__button:disabled { opacity: .45; cursor: not-allowed; }
+.game-stepper__button img { width: 24px; height: 24px; }
 .field-label { color: #111; font: 400 20px/1.3 "MemomentKkukkukk", sans-serif; }
 .text-input, .select-input, .number-input {
   border: 1.5px solid #cacddb;
@@ -397,6 +436,7 @@ body.room-active .workspace,
 }
 .sketch-input-frame {
   --sketch-color: #cacddb;
+  --sketch-fill: none;
   --sketch-width: 1.5;
   position: relative;
   display: block;
@@ -423,6 +463,18 @@ body.room-active .workspace,
 .sketch-input-frame--number { flex: none; width: 88px; }
 .split-control--number .sketch-input-frame--number { flex: 1; width: 100%; }
 .entry-row { gap: 8px; }
+.theme-pick .settings-panel > .helper,
+.theme-team .team-entry-group > .helper { margin: 0 0 8px; }
+.theme-pick .entry-row,
+.theme-team .entry-row,
+.theme-team .pair-row { gap: 10px; }
+.theme-pick .sketch-input-frame,
+.theme-team .sketch-input-frame { height: 48px; }
+.theme-pick .text-input::placeholder,
+.theme-team .text-input::placeholder,
+.theme-team .select-input:has(option:checked[value=""]) { color: #a6a9ba; font-size: 14px; }
+.theme-pick .mini-button,
+.theme-team .mini-button { height: 48px; font-size: 20px; }
 .chip-list {
   --sketch-color: #cacddb;
   --sketch-width: 1.5;
@@ -432,6 +484,16 @@ body.room-active .workspace,
   border-radius: 8px;
 }
 .chip-list.has-sketch-outline { border-color: transparent; }
+.theme-pick .chip-list,
+.theme-team .chip-list {
+  min-height: 0;
+  margin-top: 20px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+.theme-pick .chip-list:empty,
+.theme-team .chip-list:empty { display: none; }
 .chip-list-empty {
   align-self: center;
   margin: auto;
@@ -448,7 +510,65 @@ body.room-active .workspace,
 }
 .chip.has-sketch-outline { border-color: transparent; }
 .chip > :not(.sketch-outline) { position: relative; z-index: 3; }
-.mini-button { border-radius: 8px; font: 400 18px/1.3 "MemomentKkukkukk", sans-serif; }
+.theme-pick .chip,
+.theme-team .chip {
+  --sketch-color: #f2f3f7;
+  --sketch-fill: #f2f3f7;
+  height: 32px;
+  gap: 2px;
+  padding: 0 8px 0 14px;
+  border: 1.5px solid #f2f3f7;
+  border-radius: 8px;
+  background: transparent;
+  color: #7f8394;
+  font-size: 15px;
+  font-weight: 400;
+}
+.theme-pick .chip button,
+.theme-team .chip button,
+.theme-team .pair-item button { width: 20px; height: 22px; }
+.theme-pick .chip button img,
+.theme-team .chip button img,
+.theme-team .pair-item button img { display: block; width: 20px; height: 22px; }
+.team-entry-group { min-width: 0; }
+.pair-settings { display: flex; flex-direction: column; gap: 8px; margin-top: 40px; }
+.theme-team .pair-settings .field-label { margin: 0; font-size: 18px; }
+.theme-team .pair-row .sketch-input-frame { min-width: 0; }
+.theme-team .select-input { padding: 0 26px 0 16px; font-size: 14px; background-position: right 16px center; }
+.theme-team .pair-list { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.theme-team .pair-list:empty { display: none; }
+.theme-team .pair-item {
+  --sketch-color: #fff4f3;
+  --sketch-fill: #fff4f3;
+  --sketch-width: 1.5;
+  position: relative;
+  width: auto;
+  height: 32px;
+  padding: 0 8px 0 14px;
+  gap: 8px;
+  border: 1.5px solid #fff4f3;
+  border-radius: 8px;
+  background: transparent;
+  color: #e0483a;
+  font-size: 15px;
+  font-weight: 400;
+}
+.theme-team .pair-item.has-sketch-outline { border-color: transparent; }
+.theme-team .pair-item > :not(.sketch-outline) { position: relative; z-index: 3; }
+.theme-team .pair-item span { display: flex; align-items: center; gap: 4px; white-space: nowrap; }
+.theme-team .pair-item span img { width: 24px; height: 11px; }
+.mini-button {
+  --sketch-color: var(--accent);
+  --sketch-fill: var(--accent);
+  --sketch-width: 1.5;
+  position: relative;
+  border: 1.5px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  font: 400 18px/1.3 "MemomentKkukkukk", sans-serif;
+}
+.mini-button > .sketch-outline { z-index: 0; }
+.mini-button > span { position: relative; z-index: 1; }
 .split-control { border-radius: 8px; background: #fafafc; font-family: "MemomentKkukkukk", sans-serif; }
 .pair-row .sketch-input-frame { flex: 1 1 0; }
 .result-panel,
@@ -478,6 +598,12 @@ body.room-active .workspace,
   overflow-y: auto;
 }
 .result-stage-wrap .empty-result { min-height: 0; }
+.theme-pick .empty-result__icon,
+.theme-team .empty-result__icon { width: 100px; height: 100px; margin: 0 auto 20px; border-radius: 0; background: none; transform: none; }
+.theme-pick .empty-result strong,
+.theme-team .empty-result strong { margin: 0 0 4px; color: #111; font-size: 28px; font-weight: 400; line-height: 1.3; }
+.theme-pick .empty-result span,
+.theme-team .empty-result span { color: #a6a9ba; font-size: 20px; line-height: 1.3; }
 .primary-button,
 .roll-button {
   --sketch-color: var(--accent, #3e62ff);
@@ -485,7 +611,7 @@ body.room-active .workspace,
   --sketch-width: 2;
   position: relative;
   width: min(320px, 100%);
-  min-height: 56px;
+  min-height: 50px;
   margin: auto 0 0;
   border: 2px solid transparent;
   border-radius: 15px;
@@ -499,6 +625,8 @@ body.room-active .workspace,
 .primary-button > span,
 .roll-button > span { position: relative; z-index: 1; }
 .primary-button:disabled { opacity: .48; }
+.theme-pick .primary-button:disabled,
+.theme-team .primary-button:disabled { opacity: 1; filter: none; }
 
 .dice-panel .setup {
   padding: 4px;
@@ -509,6 +637,10 @@ body.room-active .workspace,
 .dice-panel .setup-label { color: #111; font: 400 20px/1.3 "MemomentKkukkukk", sans-serif; }
 .dice-panel .stepper { gap: 20px; }
 .dice-panel .stepper button {
+  --sketch-color: #cacddb;
+  --sketch-fill: none;
+  --sketch-width: 1.5;
+  position: relative;
   width: 40px;
   height: 40px;
   border: 1.5px solid #cacddb;
@@ -516,6 +648,7 @@ body.room-active .workspace,
   box-shadow: none;
   font-size: 24px;
 }
+.dice-panel .stepper button.has-sketch-outline { border-color: transparent; }
 .dice-panel .stepper button img { display: block; }
 .dice-panel .stepper strong { color: #3e62ff; font: 400 24px/1.3 "MemomentKkukkukk", sans-serif; }
 .dice-panel .name-helper { margin: 8px 0; color: #7f8394; font: 400 14px/1.3 "MemomentKkukkukk", sans-serif; }
@@ -527,6 +660,7 @@ body.room-active .workspace,
 }
 .dice-panel .player {
   --sketch-color: #cacddb;
+  --sketch-fill: none;
   --sketch-width: 1.5;
   position: relative;
   min-height: 103px;
@@ -604,6 +738,16 @@ body.is-finished .dice-panel .player:not(.is-loser) { opacity: .4; }
   .game-page, .game-shell { width: calc(100% - 28px); }
   .game-heading__copy p, .game-header .rule { font-size: 16px; }
   .game-settings-frame .settings-panel { padding: 16px; }
+  .game-count-control__stepper { gap: 8px; }
+  .game-count-control__label { font-size: 16px; }
+  .game-count-control__stepper strong { font-size: 18px; }
+  .game-stepper__button { width: 34px; height: 34px; }
+  .theme-team .pair-row { display: grid; grid-template-columns: 1fr 1fr; }
+  .theme-team .pair-row .mini-button { grid-column: 1 / -1; }
+  .theme-pick .empty-result strong,
+  .theme-team .empty-result strong { font-size: 22px; }
+  .theme-pick .empty-result span,
+  .theme-team .empty-result span { font-size: 15px; }
   .dice-panel .setup-label { font-size: 16px; }
   .dice-panel .stepper { gap: 8px; }
   .dice-panel .stepper button { width: 34px; height: 34px; }

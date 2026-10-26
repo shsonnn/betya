@@ -379,6 +379,22 @@
     document.querySelector("[data-chat-form]").addEventListener("submit", sendChat);
   }
 
+  function mountSoloChrome() {
+    if (document.querySelector(".room-bar")) return;
+    const gameType = isDicePage() ? "dice" : window.location.hash.slice(1);
+    const gameTitles = { dice: "0의 주사위", pick: "아무나 걸려라", team: "팀 나누기" };
+    const gameTitle = gameTitles[gameType];
+    if (!gameTitle) return;
+    document.body.classList.add("room-active", "solo-active");
+    document.body.insertAdjacentHTML("afterbegin", `
+      <header class="room-bar">
+        <button class="room-leave" type="button" data-room-leave aria-label="게임 선택 화면으로 돌아가기"><img src="/assets/game/home-icon.svg" alt="" /><span>홈</span></button>
+        <div class="room-game-title room-game-title--${gameType}" aria-label="${gameTitle}">${gameType === "dice" ? '<img src="/assets/game/dice-title.svg" alt="0의 주사위" />' : gameTitle}</div>
+        <div class="room-identity" aria-hidden="true"></div>
+      </header>`);
+    document.querySelector("[data-room-leave]").addEventListener("click", leave);
+  }
+
   async function copyInviteLink(event) {
     // currentTarget is null once the click dispatch is over, so read it first.
     const button = event.currentTarget;
@@ -645,7 +661,10 @@
   window.BetyaRoom = { hasSession, leave, session: () => session, state: () => roomState, send, isHost: () => session?.role === "host" };
 
   const inviteCode = inviteCodeFromUrl();
-  if (!inviteCode && new URLSearchParams(location.search).get("solo") === "1") return;
+  if (!inviteCode && new URLSearchParams(location.search).get("solo") === "1") {
+    mountSoloChrome();
+    return;
+  }
   if (inviteCode) {
     // The metadata call tells us whether the cookie still holds a session.
     clearSession();

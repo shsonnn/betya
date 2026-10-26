@@ -64,7 +64,7 @@ function sendTeamSetup() {
 
 function lockGuestControls() {
   if (!isGuest()) return;
-  document.querySelectorAll(".game-page input, .game-page select, .game-page .mini-button, .game-page .chip button, .game-page .pair-item button, .game-page .primary-button")
+  document.querySelectorAll(".game-page input, .game-page select, .game-page .mini-button, .game-page .game-stepper__button, .game-page .chip button, .game-page .pair-item button, .game-page .primary-button")
     .forEach((control) => { control.disabled = true; });
 }
 
@@ -136,22 +136,32 @@ function pageShell(theme, title, subtitle, setupMarkup, resultMarkup, actionMark
   document.querySelector("[data-back]").addEventListener("click", () => window.BetyaRoom?.leave());
 }
 
-function entryMarkup({ title, helper, placeholder, type, items, extra = "", buttonText = "추가" }) {
+function stepperMarkup(label, count, unit, minimum, maximum) {
+  return `<div class="game-count-control" aria-label="${label}">
+    <span class="game-count-control__label">${label}</span>
+    <div class="game-count-control__stepper">
+      <button class="game-stepper__button" type="button" data-count-step="-1" aria-label="${label} 줄이기" ${count <= minimum ? "disabled" : ""}><img src="./assets/game/minus-icon.svg" alt="" /></button>
+      <strong aria-live="polite">${count}${unit}</strong>
+      <button class="game-stepper__button" type="button" data-count-step="1" aria-label="${label} 늘리기" ${count >= maximum ? "disabled" : ""}><img src="./assets/game/plus-icon.svg" alt="" /></button>
+    </div>
+  </div>`;
+}
+
+function entryMarkup({ helper, placeholder, type, items, extra = "" }) {
   return `
-    <h2>${title}</h2>
     <p class="helper">${helper}</p>
     <div class="entry-row">
       <span class="sketch-input-frame"><input class="text-input" data-entry-input type="text" placeholder="${placeholder}" autocomplete="off" /></span>
-      <button class="mini-button" type="button" data-entry-add>${buttonText}</button>
+      <button class="mini-button" type="button" data-entry-add><span>추가</span></button>
     </div>
-    <div class="chip-list" data-chip-list>${items.length ? chipMarkup(items, type) : '<span class="chip-list-empty">아직 추가된 항목이 없어요</span>'}</div>
+    <div class="chip-list" data-chip-list>${chipMarkup(items, type)}</div>
     ${extra}`;
 }
 
 function chipMarkup(items, type) {
   return items.map((item, index) => `
-    <span class="chip">${escapeHtml(item)}
-      <button type="button" aria-label="${escapeHtml(item)} 삭제" data-remove-${type}="${index}">×</button>
+    <span class="chip"><span class="chip__label">${escapeHtml(item)}</span>
+      <button type="button" aria-label="${escapeHtml(item)} 삭제" data-remove-${type}="${index}"><img src="./assets/game/chip-remove.svg" alt="" /></button>
     </span>`).join("");
 }
 
@@ -235,37 +245,27 @@ function bindEntry(type, rerender) {
 function renderPick() {
   const max = Math.max(1, state.pick.items.length);
   const currentCount = Math.min(inRoom() ? state.pick.count : Number(sessionStorage.getItem("pick-count")) || 1, max);
-  let result = emptyResult("🎯", "아직 아무도 안 걸렸어요", "항목을 넣고 뽑기 버튼을 눌러주세요.");
+  let result = emptyResult("./assets/game/pick-empty.svg", "아직 아무도 안 걸렸어요", "항목을 넣고 뽑기 버튼을 눌러주세요.");
   if (state.pick.isSpinning) result = rouletteMarkup("누가 걸릴까요?", "입력한 항목들을 신나게 섞는 중이에요");
   else if (state.pick.winners.length) {
     result = `<div class="reveal-heading"><span>짠! 🎉</span><h2>오늘의 당첨 결과</h2><p class="helper">운명은 이미 정해졌습니다. 이의 신청은 받지 않아요.</p></div>
        <div class="winner-list">${state.pick.winners.map((name, index) => `<div class="winner" style="animation-delay:${index * 90}ms"><span>${index + 1}</span><strong>${escapeHtml(name)}</strong></div>`).join("")}</div>`;
   }
 
-  const extra = `
-    <label class="field-label" for="pick-count">몇 명을 뽑을까요?</label>
-    <div class="split-control"><span>당첨 인원</span><span class="sketch-input-frame sketch-input-frame--number"><input id="pick-count" class="number-input" type="number" min="1" max="${max}" value="${currentCount}" /></span></div>`;
-  const action = `<button class="primary-button" type="button" data-pick ${state.pick.items.length && !state.pick.isSpinning && !pickDirty ? "" : "disabled"}><span>${state.pick.isSpinning ? "두근두근…" : state.pick.winners.length ? "다시 뽑기" : "랜덤으로 뽑기"}</span></button>`;
+  const action = `<button class="primary-button" type="button" data-pick ${state.pick.items.length && !state.pick.isSpinning && !pickDirty ? "" : "disabled"}><span>${state.pick.isSpinning ? "두근두근…" : state.pick.winners.length ? "다시 뽑기" : "바로 뽑아버려"}</span></button>`;
 
   pageShell("pick", "아무나 걸려라", "그냥 아묻따 랜덤 뽑기 ㄷㄷ", 
-    entryMarkup({ title: "뽑을 항목", helper: "쉼표로 여러 개를 한 번에 추가할 수도 있어요.", placeholder: "예: 민수, 지연, 현우", type: "pick", items: state.pick.items, extra }), result, action);
+    stepperMarkup("당첨 인원", currentCount, "명", 1, max)
+    + entryMarkup({ helper: "쉼표로 여러 개를 한 번에 추가할 수도 있어요.", placeholder: "예: 민수, 지연, 현우", type: "pick", items: state.pick.items }), result, action);
 
   bindEntry("pick", renderPick);
-  const countInput = document.querySelector("#pick-count");
-  countInput.addEventListener("change", () => {
-    if (isGuest()) return;
-    const safe = clamp(Number(countInput.value) || 1, 1, max);
-    countInput.value = safe;
-    state.pick.count = safe;
-    sessionStorage.setItem("pick-count", safe);
-    sendPickSetup();
-  });
+  bindCountStepper("pick", currentCount, 1, max);
   document.querySelector("[data-pick]").addEventListener("click", async () => {
     if (inRoom()) {
       if (!isGuest() && !window.BetyaRoom.send("game.draw")) toast("방 연결을 확인해주세요.");
       return;
     }
-    const count = clamp(Number(countInput.value) || 1, 1, state.pick.items.length);
+    const count = clamp(currentCount, 1, state.pick.items.length);
     const winners = shuffle([...state.pick.items]).slice(0, count);
     state.pick.isSpinning = true;
     renderPreservingEntry(renderPick);
@@ -281,20 +281,18 @@ function renderTeam() {
   const maxTeams = Math.max(2, state.team.people.length || 2);
   const teamCount = clamp(inRoom() ? state.team.count : Number(sessionStorage.getItem("team-count")) || 2, 2, maxTeams);
   const options = state.team.people.map((name) => `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`).join("");
-  const pairs = state.team.pairs.map((pair, index) => `<div class="pair-item"><span>${escapeHtml(pair[0])} ↔ ${escapeHtml(pair[1])}</span><button type="button" data-remove-pair="${index}">삭제</button></div>`).join("");
+  const pairs = state.team.pairs.map((pair, index) => `<div class="pair-item"><span>${escapeHtml(pair[0])}<img src="./assets/game/pair-arrow.svg" alt="와" />${escapeHtml(pair[1])}</span><button type="button" aria-label="${escapeHtml(pair[0])}와 ${escapeHtml(pair[1])} 조합 삭제" data-remove-pair="${index}"><img src="./assets/game/chip-remove.svg" alt="" /></button></div>`).join("");
   const extra = `
-    <label class="field-label" for="team-count">나눌 팀 개수</label>
-    <div class="split-control split-control--number"><span class="sketch-input-frame sketch-input-frame--number"><input id="team-count" class="number-input" type="number" min="2" max="${maxTeams}" value="${teamCount}" aria-label="나눌 팀 개수" /></span></div>
-    <label class="field-label">절대 같은 팀이면 안 되는 사람</label>
+    <div class="pair-settings"><label class="field-label">같은 팀은 피할래요</label>
     <div class="pair-row">
-      <span class="sketch-input-frame sketch-input-frame--select"><select class="select-input" data-pair-a aria-label="첫 번째 사람"><option value="">사람 1</option>${options}</select></span>
-      <span class="sketch-input-frame sketch-input-frame--select"><select class="select-input" data-pair-b aria-label="두 번째 사람"><option value="">사람 2</option>${options}</select></span>
-      <button class="mini-button" type="button" data-add-pair>설정</button>
+      <span class="sketch-input-frame sketch-input-frame--select"><select class="select-input" data-pair-a aria-label="첫 번째 사람"><option value="">팀원을 고르세요</option>${options}</select></span>
+      <span class="sketch-input-frame sketch-input-frame--select"><select class="select-input" data-pair-b aria-label="두 번째 사람"><option value="">팀원을 고르세요</option>${options}</select></span>
+      <button class="mini-button" type="button" data-add-pair><span>적용</span></button>
     </div>
-    <div class="pair-list">${pairs}</div>`;
+    <div class="pair-list">${pairs}</div></div>`;
   const action = `<button class="primary-button" type="button" data-make-teams ${state.team.people.length >= 2 && !state.team.isSpinning && !teamDirty ? "" : "disabled"}><span>${state.team.isSpinning ? "팀을 섞는 중…" : state.team.teams.length ? "다시 나누기" : "팀 나누기"}</span></button>`;
 
-  let result = emptyResult("🙌", "팀이 만들어질 자리예요", "이름을 두 명 이상 추가한 뒤 팀을 나눠주세요.");
+  let result = emptyResult("./assets/game/team-empty.svg", "팀이 만들어질 자리예요", "인원을 두 명 이상 추가한 뒤 팀을 나눠주세요!");
   if (state.team.isSpinning) {
     result = rouletteMarkup("팀 조합 중!", "모두가 납득할 수 있게 열심히 섞는 중이에요");
   } else if (state.team.teams.length) {
@@ -305,18 +303,11 @@ function renderTeam() {
   }
 
   pageShell("team", "팀 나누기", "아 팀전으로 가면가~", 
-    entryMarkup({ title: "참가자 이름", helper: "같은 이름은 한 번만 추가돼요.", placeholder: "이름을 입력하고 Enter", type: "team", items: state.team.people, extra }), result, action);
+    stepperMarkup("팀 개수", teamCount, "팀", 2, maxTeams)
+    + `<div class="team-entry-group">${entryMarkup({ helper: "이름을 입력한 후 Enter 해주세요", placeholder: "예: 민수", type: "team", items: state.team.people })}</div>` + extra, result, action);
 
   bindEntry("team", renderTeam);
-  const teamInput = document.querySelector("#team-count");
-  teamInput.addEventListener("change", () => {
-    if (isGuest()) return;
-    const safe = clamp(Number(teamInput.value) || 2, 2, maxTeams);
-    teamInput.value = safe;
-    state.team.count = safe;
-    sessionStorage.setItem("team-count", safe);
-    sendTeamSetup();
-  });
+  bindCountStepper("team", teamCount, 2, maxTeams);
   document.querySelector("[data-add-pair]").addEventListener("click", () => {
     if (isGuest()) return;
     const a = document.querySelector("[data-pair-a]").value;
@@ -339,7 +330,7 @@ function renderTeam() {
       if (!isGuest() && !window.BetyaRoom.send("game.divide")) toast("방 연결을 확인해주세요.");
       return;
     }
-    const count = clamp(Number(teamInput.value) || 2, 2, state.team.people.length);
+    const count = clamp(teamCount, 2, state.team.people.length);
     const teams = makeBestTeams(state.team.people, count, state.team.pairs);
     state.team.isSpinning = true;
     renderTeam();
@@ -493,7 +484,20 @@ function countConflicts(teams, pairs) {
 }
 
 function emptyResult(icon, title, copy) {
-  return `<div class="empty-result"><div><span class="empty-result__icon">${icon}</span><strong>${title}</strong><span>${copy}</span></div></div>`;
+  return `<div class="empty-result"><div><img class="empty-result__icon" src="${icon}" alt="" /><strong>${title}</strong><span>${copy}</span></div></div>`;
+}
+
+function bindCountStepper(type, value, minimum, maximum) {
+  document.querySelectorAll("[data-count-step]").forEach((button) => button.addEventListener("click", () => {
+    if (isGuest()) return;
+    const next = clamp(value + Number(button.dataset.countStep), minimum, maximum);
+    if (next === value) return;
+    state[type].count = next;
+    sessionStorage.setItem(`${type}-count`, next);
+    renderPreservingEntry(type === "pick" ? renderPick : renderTeam);
+    if (type === "pick") sendPickSetup();
+    else sendTeamSetup();
+  }));
 }
 
 function toast(message) {

@@ -1,6 +1,6 @@
 /* A measured SVG stroke keeps the Figma-style hand-drawn outline crisp at every size. */
 (() => {
-  const selector = ".game-settings-frame, .dice-panel .player, .play-area .die-cube, .sketch-input-frame, .chip-list, .chip, .primary-button, .roll-button, .room-leave, .room-code-button, .member-avatar, .chat-message > p, .chat-emoji-bubble, .chat-input-shell";
+  const selector = ".game-settings-frame, .dice-panel .player, .dice-panel .stepper button, .play-area .die-cube, .sketch-input-frame, .chip-list, .chip, .pair-item, .game-stepper__button, .mini-button, .primary-button, .roll-button, .room-leave, .room-code-button, .member-avatar, .chat-message > p, .chat-emoji-bubble, .chat-input-shell";
   const watched = new WeakSet();
   const resizeObserver = new ResizeObserver((entries) => {
     for (const { target } of entries) draw(target);
@@ -17,7 +17,7 @@
     if (width < 20 || height < 20) return;
     const w = Math.round(width * 10) / 10;
     const h = Math.round(height * 10) / 10;
-    if (element.classList.contains("member-avatar")) {
+    if (element.matches(".member-avatar, .game-stepper__button, .dice-panel .stepper button")) {
       const stroke = Number.parseFloat(getComputedStyle(element).getPropertyValue("--sketch-width")) || 1.3;
       const radius = (Math.min(w, h) - stroke) / 2 - .2;
       const cx = w / 2;
@@ -57,6 +57,7 @@
 
   function attach() {
     document.querySelectorAll(selector).forEach((element) => {
+      if (element.matches(".theme-pick .chip-list, .theme-team .chip-list")) return;
       if (watched.has(element) && element.querySelector(":scope > .sketch-outline")) return;
       const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
       svg.classList.add("sketch-outline");
