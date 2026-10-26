@@ -720,7 +720,7 @@ body.is-finished .dice-panel .player:not(.is-loser) { opacity: .4; }
   body.room-active .room-code-button { min-height: 30px; padding: 4px 6px; font-size: 12px; }
   body.room-active .room-code-button small { display: none; }
   body.room-active .chat-mobile-toggle { position: fixed; right: 12px; bottom: 12px; z-index: 101; display: grid; }
-  body.room-active .chat-panel { width: min(400px, 92vw); }
+  body.room-active .chat-panel { width: calc(100vw * 2 / 3); }
   body.room-active .chat-panel > header { padding-right: 12px; }
   body.room-active .chat-close { display: grid; flex: none; }
   body.room-active .game-page, body.room-active .game-shell { height: auto; min-height: calc(100svh - 60px); padding: 32px 0 48px; overflow: visible; }
@@ -728,6 +728,85 @@ body.is-finished .dice-panel .player:not(.is-loser) { opacity: .4; }
   .game-settings-frame { min-height: 380px; height: auto; }
   .game-settings-frame .settings-panel { max-height: 630px; }
   .result-panel, .dice-panel.play-area { min-height: 450px; }
+}
+
+@media (max-width: 900px) {
+  html:has(body.room-active),
+  body.room-active { height: 100%; overflow: hidden; }
+  body.room-active { height: 100svh; min-height: 0; }
+  body.room-active #app { height: calc(100svh - var(--room-bar-height)); overflow: hidden; }
+  body.room-active .game-page,
+  body.room-active .game-shell {
+    height: 100%;
+    min-height: 0;
+    padding: 12px 0 max(12px, env(safe-area-inset-bottom));
+    justify-content: flex-start;
+    overflow: hidden;
+  }
+  body.room-active .game-heading,
+  body.room-active .game-header { flex: none; margin-bottom: 10px; }
+  body.room-active .workspace,
+  body.room-active .dice-workspace {
+    height: auto;
+    min-height: 0;
+    flex: 1 1 auto;
+    margin: 0;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 44fr) minmax(0, 56fr);
+    gap: 10px;
+  }
+  body.room-active .game-settings-frame { height: 100%; min-height: 0; }
+  body.room-active .game-settings-frame .settings-panel {
+    height: 100%;
+    min-height: 0;
+    max-height: none;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+  body.room-active .result-panel,
+  body.room-active .dice-panel.play-area {
+    height: 100%;
+    min-height: 0;
+    padding: 12px 8px;
+    overflow: hidden;
+  }
+  body.room-active .result-stage-wrap { min-height: 0; overflow-y: auto; }
+  body.room-active .play-area .dice-stage {
+    --die-size: clamp(86px, 14svh, 122px);
+    height: clamp(110px, 23svh, 190px);
+    min-height: 0;
+    flex: 0 1 auto;
+    margin: auto 0;
+  }
+  body.room-active .play-area .die-rig--one {
+    left: calc(50% - var(--die-size) - 6px);
+    top: calc(50% - var(--die-size) / 2);
+  }
+  body.room-active .play-area .die-rig--two {
+    left: calc(50% + 6px);
+    top: calc(50% - var(--die-size) / 2);
+  }
+  body.room-active .play-area .dice-result-stage {
+    min-height: 0;
+    flex: 1 1 auto;
+    margin: 0;
+    padding: 8px;
+    overflow-y: auto;
+  }
+  body.room-active .play-area .roll-button,
+  body.room-active .result-panel .primary-button { min-height: 48px; }
+}
+
+@media (max-width: 900px) and (max-height: 650px) {
+  body.room-active .workspace,
+  body.room-active .dice-workspace { grid-template-rows: minmax(0, 38fr) minmax(0, 62fr); }
+  body.room-active .play-area .turn-label { font-size: 16px; }
+  body.room-active .play-area .dice-stage { --die-size: 86px; height: 120px; }
+  body.room-active .play-area .hint { display: none; }
+  body.room-active .theme-pick .empty-result__icon,
+  body.room-active .theme-team .empty-result__icon { width: 64px; height: 64px; margin-bottom: 8px; }
 }
 
 @media (max-width: 560px) {
