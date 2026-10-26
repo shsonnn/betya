@@ -604,7 +604,7 @@
       group.append(author);
       list.append(group);
     }
-    if (content.tagName === "IMG") group.classList.add("chat-message--emoji");
+    if (content.classList.contains("chat-emoji-bubble")) group.classList.add("chat-message--emoji");
     group.append(content);
     while (list.children.length > 100) list.firstElementChild.remove();
     list.scrollTop = list.scrollHeight;
@@ -621,10 +621,13 @@
   function appendEmoji(message) {
     const emoji = EMOJIS.find(([key]) => key === message.emoji_id);
     if (!emoji) return;
+    const bubble = document.createElement("div");
+    bubble.className = "chat-emoji-bubble";
     const image = document.createElement("img");
     image.src = `/assets/emojis/${message.emoji_id}.png`;
     image.alt = emoji[1];
-    appendMessage(message, image);
+    bubble.append(image);
+    appendMessage(message, bubble);
   }
 
   function showChatNotice(text) {
