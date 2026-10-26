@@ -348,17 +348,17 @@
     const gameTitle = gameTitles[session.gameType] || gameTitles.dice;
     document.body.insertAdjacentHTML("afterbegin", `
       <header class="room-bar">
-        <button class="room-leave" type="button" data-room-leave aria-label="게임 선택 화면으로 돌아가기"><img src="/assets/game/home-icon.svg" alt="" />홈</button>
+        <button class="room-leave" type="button" data-room-leave aria-label="게임 선택 화면으로 돌아가기"><img src="/assets/game/home-icon.svg" alt="" /><span>홈</span></button>
         <div class="room-game-title room-game-title--${escapeHtml(session.gameType)}" aria-label="${gameTitle}">${session.gameType === "dice" ? '<img src="/assets/game/dice-title.svg" alt="0의 주사위" />' : escapeHtml(gameTitle)}</div>
         <div class="room-identity">
           <span class="connection-dot" data-connection-dot></span>
-          <div><strong data-room-name>방 연결 중…</strong><span data-host-name>방장 확인 중</span></div>
-          <button class="room-code-button" type="button" data-copy-code><small>코드복사</small>${escapeHtml(session.code)}</button>
+          <div><strong data-room-name>방 연결 중…</strong></div>
+          <button class="room-code-button" type="button" data-copy-code><small>코드복사</small><b class="room-code-value">${escapeHtml(session.code)}</b></button>
         </div>
         <button class="chat-mobile-toggle" type="button" aria-label="채팅 열기" data-chat-toggle>💬</button>
       </header>
       <aside class="chat-panel" aria-label="방 채팅">
-        <header><div class="chat-heading"><strong>채팅</strong><span class="chat-member-count">(<b data-member-count>1명</b> 참여 중)</span><span class="sr-only" data-chat-status>연결 중…</span></div><div class="room-members" aria-label="참여 중인 사람"><div class="avatar-stack" data-avatar-stack></div></div><button type="button" class="chat-close" aria-label="채팅 닫기" data-chat-close>×</button></header>
+        <header><div class="chat-heading"><strong>채팅</strong><span class="chat-member-count">(<b data-member-count>1명</b> 참여 중)</span></div><div class="room-members" aria-label="참여 중인 사람"><div class="avatar-stack" data-avatar-stack></div></div><button type="button" class="chat-close" aria-label="채팅 닫기" data-chat-close>×</button></header>
         <div class="chat-messages" data-chat-messages aria-live="polite"><p class="chat-empty">방에 연결되면 대화를 시작할 수 있어요.</p></div>
         <div class="emoji-picker" data-emoji-picker hidden>
           <div class="emoji-picker__head"><strong>하면해 이모티콘</strong><button type="button" aria-label="이모티콘 닫기" data-emoji-close>×</button></div>
@@ -385,8 +385,8 @@
     const inviteUrl = `${window.location.origin}/room/${encodeURIComponent(session.code)}`;
     try {
       await navigator.clipboard.writeText(inviteUrl);
-      button.innerHTML = '<small>복사완료</small>' + escapeHtml(session?.code ?? "");
-      window.setTimeout(() => { button.innerHTML = '<small>코드복사</small>' + escapeHtml(session?.code ?? ""); }, 1200);
+      button.querySelector("small").textContent = "복사완료";
+      window.setTimeout(() => { button.querySelector("small").textContent = "코드복사"; }, 1200);
     } catch {
       showChatNotice(`초대 링크: ${inviteUrl}`);
     }
@@ -531,21 +531,16 @@
   function updateRoomHeader() {
     if (!roomState?.room) return;
     const members = roomState.players;
-    const host = members.find((member) => member.is_host);
     document.querySelector("[data-room-name]").textContent = roomState.room.name || "비공개 방";
-    document.querySelector("[data-host-name]").textContent = host ? `${host.nickname} 방장` : "방장 연결 대기";
     document.querySelector("[data-member-count]").textContent = `${members.length}명`;
-    document.querySelector("[data-avatar-stack]").innerHTML = members.slice(0, 5).map((member, index) => `
-      <span class="member-avatar${member.is_host ? " is-host" : ""}" style="--avatar-index:${index}" title="${escapeHtml(member.nickname)}">${escapeHtml(Array.from(member.nickname.trim())[0] || "?")}</span>`).join("") +
-      (members.length > 5 ? `<span class="member-avatar is-more">+${members.length - 5}</span>` : "");
+    document.querySelector("[data-avatar-stack]").innerHTML = members.slice(0, 2).map((member, index) => `
+      <span class="member-avatar${member.is_host ? " is-host" : ""}" style="--avatar-index:${index}" title="${escapeHtml(member.nickname)}"><span class="member-avatar__label">${escapeHtml(Array.from(member.nickname.trim())[0] || "?")}</span></span>`).join("") +
+      (members.length > 2 ? `<span class="member-avatar is-more"><span class="member-avatar__label">+${members.length - 2}</span></span>` : "");
   }
 
   function setConnectionStatus(status) {
     const dot = document.querySelector("[data-connection-dot]");
-    const label = document.querySelector("[data-chat-status]");
     if (dot) dot.dataset.status = status;
-    const labels = { connected: "실시간 연결됨", connecting: "연결 중…", replaced: "다른 탭에서 사용 중" };
-    if (label) label.textContent = labels[status] || "다시 연결 중…";
   }
 
   function send(type, payload = {}) {
@@ -617,7 +612,9 @@
 
   function appendChat(message) {
     const bubble = document.createElement("p");
-    bubble.textContent = message.text;
+    const text = document.createElement("span");
+    text.textContent = message.text;
+    bubble.append(text);
     appendMessage(message, bubble);
   }
 
