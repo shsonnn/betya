@@ -358,7 +358,7 @@
         <button class="chat-mobile-toggle" type="button" aria-label="채팅 열기" data-chat-toggle>💬</button>
       </header>
       <aside class="chat-panel" aria-label="방 채팅">
-        <header><div class="chat-heading"><strong>채팅</strong><span class="chat-member-count">(<b data-member-count>1명</b> 참여 중)</span></div><div class="room-members" aria-label="참여 중인 사람"><div class="avatar-stack" data-avatar-stack></div></div><button type="button" class="chat-close" aria-label="채팅 닫기" data-chat-close>×</button></header>
+        <header><div class="chat-heading"><strong>채팅</strong><span class="chat-member-count">(<b data-member-count>1명</b> 참여 중)</span></div><div class="room-members host-control"><button type="button" class="host-transfer-button" data-host-transfer aria-expanded="false" aria-controls="host-transfer-list" hidden>방장 바꾸기</button><span class="host-name" data-host-name hidden></span><div class="host-transfer-list" id="host-transfer-list" data-host-list hidden></div></div><button type="button" class="chat-close" aria-label="채팅 닫기" data-chat-close>×</button></header>
         <div class="chat-messages" data-chat-messages aria-live="polite"><p class="chat-empty">방에 연결되면 대화를 시작할 수 있어요.</p></div>
         <div class="emoji-picker" data-emoji-picker hidden>
           <div class="emoji-picker__head"><strong>하면해 이모티콘</strong><button type="button" aria-label="이모티콘 닫기" data-emoji-close>×</button></div>
@@ -377,6 +377,25 @@
     document.querySelector("[data-emoji-close]").addEventListener("click", () => setEmojiPicker(false));
     document.querySelectorAll("[data-emoji-key]").forEach((button) => button.addEventListener("click", () => sendEmoji(button.dataset.emojiKey)));
     document.querySelector("[data-chat-form]").addEventListener("submit", sendChat);
+    const transfer = document.querySelector("[data-host-transfer]");
+    const hostList = document.querySelector("[data-host-list]");
+    transfer.addEventListener("click", () => {
+      hostList.hidden = !hostList.hidden;
+      transfer.setAttribute("aria-expanded", String(!hostList.hidden));
+    });
+    document.addEventListener("click", (event) => {
+      if (!event.target.closest(".host-control")) {
+        hostList.hidden = true;
+        transfer.setAttribute("aria-expanded", "false");
+      }
+    });
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && !hostList.hidden) {
+        hostList.hidden = true;
+        transfer.setAttribute("aria-expanded", "false");
+        transfer.focus();
+      }
+    });
   }
 
   function mountSoloChrome() {
@@ -491,6 +510,14 @@
         const me = payload.players.find((player) => player.player_id === payload.you?.player_id);
         if (me && session) saveSession({ ...session, playerId: me.player_id, name: me.nickname, role: me.is_host ? "host" : "guest" });
         updateRoomHeader();
+        if (Array.isArray(payload.chat_history)) {
+          const list = document.querySelector("[data-chat-messages]");
+          if (payload.chat_history.length) list.replaceChildren();
+          for (const message of payload.chat_history) {
+            if (message.type === "chat.message") appendChat(message.payload);
+            else if (message.type === "emoji.message") appendEmoji(message.payload);
+          }
+        }
         document.dispatchEvent(new CustomEvent("betya-room-ready", { detail: payload.room }));
         document.dispatchEvent(new CustomEvent("betya-game", { detail: { type: "game.snapshot", payload: { game: payload.game } } }));
         break;
@@ -549,9 +576,52 @@
     const members = roomState.players;
     document.querySelector("[data-room-name]").textContent = roomState.room.name || "비공개 방";
     document.querySelector("[data-member-count]").textContent = `${members.length}명`;
-    document.querySelector("[data-avatar-stack]").innerHTML = members.slice(0, 2).map((member, index) => `
-      <span class="member-avatar${member.is_host ? " is-host" : ""}" style="--avatar-index:${index}" title="${escapeHtml(member.nickname)}"><span class="member-avatar__label">${escapeHtml(Array.from(member.nickname.trim())[0] || "?")}</span></span>`).join("") +
-      (members.length > 2 ? `<span class="member-avatar is-more"><span class="member-avatar__label">+${members.length - 2}</span></span>` : "");
+    const host = members.find((member) => member.is_host);
+    const isHost = host?.player_id === session?.playerId;
+    const button = document.querySelector("[data-host-transfer]");
+    const label = document.querySelector("[data-host-name]");
+    const list = document.querySelector("[data-host-list]");
+    button.hidden = !isHost;
+    label.hidden = isHost;
+    label.textContent = "방장:" + (host?.nickname || "");
+    if (!isHost) {
+      list.hidden = true;
+      button.setAttribute("aria-expanded", "false");
+    }
+    list.replaceChildren();
+    const candidates = members.filter((member) => member.status === "connected");
+    for (const member of candidates) {
+      const option = document.createElement("button");
+      option.type = "button";
+      const selected = member.player_id === host?.player_id;
+      option.setAttribute("aria-pressed", String(selected));
+      const indicator = document.createElement("span");
+      indicator.className = "host-option-check";
+      indicator.setAttribute("aria-hidden", "true");
+      if (selected) {
+        const check = document.createElement("img");
+        check.src = "/assets/game/host-selected.svg";
+        check.alt = "";
+        indicator.append(check);
+      }
+      const name = document.createElement("span");
+      name.className = "host-option-name";
+      name.textContent = member.nickname;
+      option.append(indicator, name);
+      option.addEventListener("click", () => {
+        if (selected) return;
+        if (send("host.transfer", { player_id: member.player_id })) {
+          list.hidden = true;
+          button.setAttribute("aria-expanded", "false");
+        }
+      });
+      list.append(option);
+    }
+    if (!candidates.length) {
+      const empty = document.createElement("p");
+      empty.textContent = "현재 접속 중인 다른 참가자가 없어요.";
+      list.append(empty);
+    }
   }
 
   function setConnectionStatus(status) {
@@ -622,7 +692,7 @@
     }
     if (content.classList.contains("chat-emoji-bubble")) group.classList.add("chat-message--emoji");
     group.append(content);
-    while (list.children.length > 100) list.firstElementChild.remove();
+    while (list.children.length > 200) list.firstElementChild.remove();
     list.scrollTop = list.scrollHeight;
   }
 

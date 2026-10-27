@@ -45,10 +45,6 @@
         </section></div>
 
         <section class="dice-panel play-area" aria-live="polite">
-          <div class="play-heading">
-            <h2>주사위 굴리기</h2>
-            <p class="turn-label" id="turn-label">1번 차례</p>
-          </div>
           <div class="dice-stage" aria-label="주사위 결과">
             <span class="dice-floor-shadow" aria-hidden="true"></span>
             <div class="die-rig die-rig--one">
@@ -59,7 +55,13 @@
             </div>
           </div>
           <div class="dice-result-stage" id="dice-result-stage" hidden></div>
-          <button class="roll-button" id="roll-button" type="button"><span id="button-label">굴리기</span></button>
+          <div class="result-actions">
+          <div class="play-heading">
+            <h2>주사위 굴리기</h2>
+            <p class="turn-label" id="turn-label">1번 차례</p>
+          </div>
+            <button class="roll-button" id="roll-button" type="button"><span id="button-label">굴리기</span></button>
+          </div>
           <p class="hint" id="hint">1번 차례 · 슬롯이 멈춘 점의 개수가 결과예요</p>
         </section>
       </div>

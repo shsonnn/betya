@@ -1,6 +1,6 @@
 /* A measured SVG stroke keeps the Figma-style hand-drawn outline crisp at every size. */
 (() => {
-  const selector = ".game-settings-frame, .dice-panel .player, .dice-panel .stepper button, .play-area .die-cube, .sketch-input-frame, .chip-list, .chip, .pair-item, .game-stepper__button, .mini-button, .primary-button, .roll-button, .room-leave, .room-code-button, .member-avatar, .chat-message > p, .chat-emoji-bubble, .chat-input-shell";
+  const selector = ".game-settings-frame, .dice-panel .player, .dice-panel .stepper button, .play-area .die-cube, .sketch-input-frame, .chip-list, .chip, .pair-item, .game-stepper__button, .mini-button, .primary-button, .roll-button, .room-leave, .room-code-button, .host-transfer-button, .host-transfer-list, .member-avatar, .chat-message > p, .chat-emoji-bubble, .chat-input-shell";
   const watched = new WeakSet();
   const resizeObserver = new ResizeObserver((entries) => {
     for (const { target } of entries) draw(target);
@@ -37,9 +37,9 @@
     const button = element.matches(".primary-button, .roll-button");
     const chatBubble = element.matches(".chat-message > p, .chat-emoji-bubble");
     const chatInput = element.classList.contains("chat-input-shell");
-    const headerButton = element.matches(".room-leave, .room-code-button");
+    const headerButton = element.matches(".room-leave, .room-code-button, .host-transfer-button, .host-transfer-list");
     const edge = panel || die ? 2.6 : button ? 1.8 : headerButton || chatBubble || chatInput ? .9 : 1.5;
-    const radius = button ? 14 : headerButton ? 5 : chatBubble ? 4 : panel || die ? 9 : 8;
+    const radius = button ? 14 : headerButton ? 5 : chatBubble ? 8 : panel || die ? 9 : 8;
     const amplitude = panel ? 1.3 : die ? 1.1 : button ? 1 : chatBubble || chatInput || headerButton ? .5 : .75;
     const seed = panel ? 2.4 : die ? 5.2 : button ? 3.4 : headerButton ? 4.1 : Number(element.dataset.player || 0) + 1.8;
     let d = `M ${edge + radius} ${edge}`;

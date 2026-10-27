@@ -63,6 +63,8 @@ function sendTeamSetup() {
 }
 
 function lockGuestControls() {
+  document.querySelectorAll(".game-page .game-stepper__button")
+    .forEach((control) => { control.hidden = isGuest(); });
   if (!isGuest()) return;
   document.querySelectorAll(".game-page input, .game-page select, .game-page .mini-button, .game-page .game-stepper__button, .game-page .chip button, .game-page .pair-item button, .game-page .primary-button")
     .forEach((control) => { control.disabled = true; });

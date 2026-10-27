@@ -138,6 +138,8 @@ function setDieValue(element, value, announce = true) {
 function setInteractionLocked(locked) {
   isRolling = locked;
   rollButton.hidden = isGuest();
+  decreasePlayersButton.hidden = isGuest();
+  increasePlayersButton.hidden = isGuest();
   rollButton.disabled = locked || isGuest() || (inRoom() && localSetupDirty);
   decreasePlayersButton.disabled = locked || isGuest() || playerCount === MIN_PLAYERS;
   increasePlayersButton.disabled = locked || isGuest() || playerCount === MAX_PLAYERS;

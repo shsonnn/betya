@@ -51,6 +51,7 @@ interface RoomState {
   expires_at_ms: number;
   players: Player[];
   game: GameState;
+  chat_sequence?: number;
 }
 
 interface SocketAttachment {
@@ -310,6 +311,7 @@ export class GameRoom extends DurableObject<Env> {
         players: state.players.map(publicPlayer),
         you: { player_id: player.player_id },
         game: state.game,
+        chat_history: Array.from((await this.ctx.storage.list({ prefix: "chat:", limit: 200 })).values()),
         server_time_ms: Date.now(),
       },
     }));
@@ -332,12 +334,23 @@ export class GameRoom extends DurableObject<Env> {
     if (envelope.type === "chat.send") {
       const value = normalize(payload.text, 500);
       if (!value) return;
-      this.broadcast("chat.message", { player_id: player.player_id, nickname: player.nickname, text: value, sent_at: Date.now() });
+      await this.saveChat(state, "chat.message", { player_id: player.player_id, nickname: player.nickname, text: value, sent_at: Date.now() });
       return;
     }
     if (envelope.type === "emoji.send") {
       if (typeof payload.emoji_id !== "string" || !EMOJI_KEYS.has(payload.emoji_id)) return;
-      this.broadcast("emoji.message", { player_id: player.player_id, nickname: player.nickname, emoji_id: payload.emoji_id, sent_at: Date.now() });
+      await this.saveChat(state, "emoji.message", { player_id: player.player_id, nickname: player.nickname, emoji_id: payload.emoji_id, sent_at: Date.now() });
+      return;
+    }
+    if (envelope.type === "host.transfer") {
+      if (!player.is_host) return this.sendError(socket, "FORBIDDEN", "방장만 할 수 있어요.");
+      const next = state.players.find((candidate) => candidate.player_id === payload.player_id && candidate.status === "connected");
+      if (!next || next.player_id === player.player_id) return this.sendError(socket, "INVALID_INPUT", "현재 접속 중인 다른 참가자를 선택해주세요.");
+      state.players.forEach((candidate) => {
+        candidate.is_host = candidate.player_id === next.player_id;
+      });
+      await this.write(state);
+      this.broadcast("host.changed", { host_player_id: next.player_id, nickname: next.nickname });
       return;
     }
     if (typeof envelope.type !== "string" || !envelope.type.startsWith("game.")) return;
@@ -351,6 +364,18 @@ export class GameRoom extends DurableObject<Env> {
       "game.reset": "game.updated",
     };
     this.broadcast(events[envelope.type], { game: state.game });
+  }
+
+  private async saveChat(state: RoomState, type: string, payload: Record<string, unknown>): Promise<void> {
+    const sequence = (state.chat_sequence ?? 0) + 1;
+    state.chat_sequence = sequence;
+    const key = (value: number) => `chat:${String(value).padStart(12, "0")}`;
+    await this.ctx.storage.transaction(async (txn) => {
+      await txn.put(key(sequence), { type, payload });
+      await txn.put("state", state);
+      if (sequence > 200) await txn.delete(key(sequence - 200));
+    });
+    this.broadcast(type, payload);
   }
 
   async webSocketClose(socket: WebSocket): Promise<void> {
