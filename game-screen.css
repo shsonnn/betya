@@ -347,7 +347,7 @@ body.room-active .chat-compose {
   grid-template-columns: 40px minmax(0, 1fr);
   gap: 8px;
   border: 0;
-  background: #fafafc;
+  background: #fff;
   position: relative;
 }
 body.room-active .chat-compose::before {
@@ -448,6 +448,7 @@ body.room-active .game-shell {
 body.room-active .workspace,
 .dice-workspace { flex: none; }
 .game-settings-frame {
+  width: min(400px, 100%);
   --sketch-color: #111;
   --sketch-fill: #fff;
   --sketch-width: 2;
@@ -999,3 +1000,25 @@ body.room-active .dice-panel.play-area {
   overflow-x: hidden;
   overflow-y: hidden;
 }
+
+/* Uniform control heights within game settings only. */
+.game-settings-frame .sketch-input-frame,
+.game-settings-frame input,
+.game-settings-frame select,
+.game-settings-frame button {
+  box-sizing: border-box;
+  height: 40px;
+  min-height: 40px;
+  max-height: 40px;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+.game-settings-frame .sketch-input-frame :is(input, select) {
+  height: 100%;
+  min-height: 0;
+  max-height: none;
+}
+.game-settings-frame :is(.game-stepper__button, .stepper button) { width: 40px; }
+.game-settings-frame :is(.chip, .pair-item) { height: auto; min-height: 40px; }
+
+.game-settings-frame .player-name { height: 24px; min-height: 24px; max-height: 24px; }
