@@ -16,6 +16,8 @@ const files = [
   "room.js",
   "game-screen.css",
   "game-outline.js",
+  "theme.css",
+  "roulette.js",
 ];
 
 await rm(dist, { recursive: true, force: true });

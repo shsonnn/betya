@@ -111,6 +111,7 @@ function renderRoute() {
   document.body.dataset.route = route;
   if (route === "pick") renderPick();
   else if (route === "team") renderTeam();
+  else if (route === "roulette") renderSpinGame();
   else if (route === "dice") renderDice();
   else renderHome();
   window.scrollTo({ top: 0, behavior: "auto" });
@@ -373,6 +374,7 @@ async function animateRoulette(values, isCurrent = () => true) {
 
 function applyRoomGame(detail) {
   const game = detail?.payload?.game;
+  if (game?.type === "roulette") { applySpinGame(detail); return; }
   if (!inRoom() || !game || game.revision < remoteGameRevision) return;
   if (!isGuest() && detail.type !== "game.drawn" && detail.type !== "game.divided") {
     if (game.type === "random_pick" && pickDirty) {

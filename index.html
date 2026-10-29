@@ -7,11 +7,11 @@
     <meta name="description" content="우리끼리 내기 게임." />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="하면해" />
-    <meta property="og:title" content="하면해" />
+    <meta property="og:title" content="하면해 — 우리끼리 내기 게임" />
     <meta property="og:description" content="우리끼리 내기 게임." />
     <meta property="og:url" content="https://betya.toxcap.com/" />
     <meta name="twitter:card" content="summary" />
-    <meta name="twitter:title" content="하면해" />
+    <meta name="twitter:title" content="하면해 — 우리끼리 내기 게임" />
     <meta name="twitter:description" content="우리끼리 내기 게임." />
     <title>하면해 — 우리끼리 내기 게임</title>
     <link rel="stylesheet" href="./styles.css?v=20261025-memoment-1" />
@@ -23,12 +23,13 @@
     <link rel="prefetch" href="./dice.html" as="document" />
     <link rel="prefetch" href="./dice.css?v=20261025-memoment-1" as="style" />
     <link rel="prefetch" href="./dice.js?v=20261027-guest-cta-1" as="script" />
+    <link rel="stylesheet" href="./theme.css?v=20261029" />
   </head>
   <body>
     <div class="home-pattern" aria-hidden="true"></div>
     <header class="site-header">
       <button class="brand" type="button" aria-label="게임 선택 화면으로 이동">
-        <span class="brand-art"><img src="./assets/home/logo.svg" alt="하면해" /></span>
+        <span class="brand-art"><img src="./assets/home/catalog-logo.svg" alt="하면해" /></span>
       </button>
     </header>
 
@@ -45,10 +46,10 @@
             <span class="card-outline" aria-hidden="true"><img src="./assets/home/card-outline.svg" alt="" /></span>
             <span class="card-copy">
               <strong>0의 주사위</strong>
-              <span>두 번 굴려 더한 값이 가장 낮은 사람이 쏘기~!</span>
+              <span>값이 가장 낮은 사람이 쏘기~!</span>
             </span>
             <span class="card-art card-art--dice" aria-hidden="true">
-              <span class="art-canvas"><img src="./assets/home/figma-2025/dice.svg" alt="" /></span>
+              <span class="art-canvas"><img src="./assets/home/catalog-dice.svg" alt="" /></span>
             </span>
           </button>
 
@@ -59,7 +60,7 @@
               <span>그냥 아묻따 랜덤 뽑기 ㄷㄷ</span>
             </span>
             <span class="card-art card-art--pick" aria-hidden="true">
-              <span class="art-canvas"><img src="./assets/home/figma-2025/pick.svg" alt="" /></span>
+              <span class="art-canvas"><img src="./assets/home/catalog-pick.svg" alt="" /></span>
             </span>
           </button>
 
@@ -67,18 +68,23 @@
             <span class="card-outline" aria-hidden="true"><img src="./assets/home/card-outline.svg" alt="" /></span>
             <span class="card-copy">
               <strong>팀 나누기</strong>
-              <span>아 팀전으로 가면가~</span>
+              <span>아 팀전으로 가면 가~</span>
             </span>
             <span class="card-art card-art--team" aria-hidden="true">
-              <span class="art-canvas"><img class="team-left" src="./assets/home/figma-2025/team-left.svg" alt="" /><img class="team-right" src="./assets/home/figma-2025/team-right.svg" alt="" /></span>
+              <span class="art-canvas"><img class="team-left" src="./assets/home/catalog-team-left.svg" alt="" /><img class="team-right" src="./assets/home/catalog-team-right.svg" alt="" /></span>
             </span>
+          </button>
+          <button class="game-card game-card--roulette" type="button" data-route="roulette">
+            <span class="card-copy"><strong>돌려돌려</strong><span>돌려돌려~ 누구 차례일까?</span></span>
+            <span class="card-art card-art--roulette" aria-hidden="true"><span class="art-canvas"><img src="./assets/home/catalog-roulette.svg" alt="" /></span></span>
           </button>
         </div>
       </section>
     </template>
 
-    <script src="./room.js?v=20261027-guest-cta-1"></script>
-    <script src="./app.js?v=20261027-guest-cta-1"></script>
-    <script src="./game-outline.js?v=20261026-figma-games-1"></script>
+    <script src="./room.js?v=20261029"></script>
+    <script src="./roulette.js?v=20261029"></script>
+    <script src="./app.js?v=20261029"></script>
+    <script src="./game-outline.js?v=20261029"></script>
   </body>
 </html>

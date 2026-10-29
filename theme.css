@@ -1,0 +1,160 @@
+/* Shared October palette. Secondary blue is reserved for secondary controls. */
+:root {
+  --primary: #111111;
+  --secondary: #3e62ff;
+  --blue: #111111;
+  --coral: #111111;
+  --green: #111111;
+  --blue-soft: #f2f3f7;
+  --coral-soft: #f2f3f7;
+  --green-soft: #f2f3f7;
+  --ink: #111111;
+}
+.game-page, .game-shell, .play-area .roll-button {
+  --accent: var(--primary);
+  --accent-soft: #f2f3f7;
+  --accent-shadow: #11111118;
+}
+body.room-active .room-game-title,
+.room-dialog.room-dialog .room-dialog-heading h2 { color: var(--primary); }
+.dice-panel .player.is-current, .dice-panel .player.is-loser { --sketch-color: var(--primary); border-color: var(--primary); }
+.dice-panel .player.has-sketch-outline { border-color: transparent; }
+.primary-button .sketch-outline, .roll-button .sketch-outline { --sketch-color: var(--primary); --sketch-fill: var(--primary); }
+.theme-pick .mini-button, .theme-team .mini-button {
+  --sketch-color: var(--primary); --sketch-fill: #fff; color: var(--primary);
+}
+.result-kicker { color: var(--primary); background: #f2f3f7; }
+.game-count-control__stepper strong, .dice-panel .stepper strong { color: var(--secondary); }
+
+/* Preserve dialog spacing, changing only the control palette and stroke. */
+.room-dialog.room-dialog { --modal-primary: var(--primary); }
+.room-dialog.room-dialog .segmented-control span,
+.room-dialog.room-dialog .lobby-submit,
+.room-dialog.room-dialog .solo-button { background: transparent; border-image: none; }
+.room-dialog.room-dialog :where(.segmented-control span, .lobby-submit, .solo-button) {
+  position: relative;
+  isolation: isolate;
+  background: transparent;
+  border-image: none;
+  --sketch-fill: #fff;
+  --sketch-color: #a6a9ba;
+  --sketch-width: 1.5;
+}
+.room-dialog.room-dialog .segmented-control input:checked + span {
+  --sketch-color: var(--primary); --sketch-width: 2; color: var(--primary);
+}
+.room-dialog.room-dialog .lobby-submit { --sketch-fill: var(--primary); --sketch-color: var(--primary); }
+.room-dialog.room-dialog .solo-button { --sketch-color: var(--primary); color: var(--primary); }
+.room-dialog :is(.segmented-control span, .lobby-submit, .solo-button) > .sketch-outline { z-index: -1; }
+
+/* Four-column, content-driven catalog: new rows extend the page naturally. */
+body[data-route="home"] {
+  --home-unit: 1px;
+  min-height: 100svh;
+  height: auto;
+  overflow-x: hidden;
+  overflow-y: auto;
+  background: #f5f8fd;
+}
+body[data-route="home"] .site-header {
+  height: auto;
+  padding: max(56px, calc((100svh - 682px) / 2)) 0 0;
+}
+body[data-route="home"] .brand { width: 300px; height: 120px; transform: none; }
+body[data-route="home"] .brand-art { transform: none; }
+body[data-route="home"] .home {
+  width: min(1440px, calc(100% - 80px));
+  margin: 80px auto 0;
+  padding-bottom: 120px;
+}
+body[data-route="home"] .home-actions { position: fixed; top: auto; right: 40px; bottom: 40px; z-index: 20; }
+body[data-route="home"] .game-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 20px; align-items: start; }
+body[data-route="home"] .game-card {
+  --sketch-color: #111;
+  --sketch-width: 3;
+  --sketch-fill: #fff;
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 0;
+  min-height: 0;
+  height: auto;
+  aspect-ratio: auto;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  overflow: visible;
+  box-shadow: none;
+  text-align: left;
+  transition: transform 180ms ease;
+}
+body[data-route="home"] .game-card > .sketch-outline { z-index: -1; filter: drop-shadow(1px 1px 4px #0000001a); }
+body[data-route="home"] .card-outline { display: none; }
+body[data-route="home"] .game-card:hover { transform: scale(1.015); }
+body[data-route="home"] .game-card:hover > .sketch-outline { filter: drop-shadow(2px 4px 6px #00000026); }
+body[data-route="home"] .game-card:focus-visible { outline-color: var(--secondary); }
+body[data-route="home"] .card-copy { position: static; display: flex; flex-direction: column; gap: 4px; padding: 24px 32px; }
+body[data-route="home"] .card-copy strong { color: var(--primary); font-size: clamp(22px, 2vw, 32px); line-height: 1.3; }
+body[data-route="home"] .card-copy > span { color: #444; font-size: clamp(13px, 1.15vw, 18px); line-height: 1.3; white-space: normal; }
+body[data-route="home"] .card-art { position: relative; inset: auto; width: 100%; height: auto; aspect-ratio: 1; border-radius: 0; }
+body[data-route="home"] .art-canvas { width: 345px; height: 345px; transform: scale(calc(100cqw / 345px)); }
+body[data-route="home"] .card-art--dice img { left: 76.33px; top: 13.33px; transform: scaleX(-1); }
+body[data-route="home"] .card-art--pick .art-canvas { bottom: 0; }
+body[data-route="home"] .card-art--pick img { left: 77.45px; top: 32.19px; }
+body[data-route="home"] .card-art--team .team-left { left: 58.84px; top: 30.35px; }
+body[data-route="home"] .card-art--team .team-right { left: 170.02px; top: 128.32px; }
+body[data-route="home"] .card-art--roulette img { left: 0; top: 0; }
+
+/* Roulette uses the same settings and result frames as the other games. */
+.roulette-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.roulette-fields .text-input { text-align: center; padding: 0 8px; font-size: 16px; }
+.roulette-fields .text-input::placeholder { color: #a6a9ba; font-size: 14px; }
+.theme-roulette .settings-panel > .helper { margin: 0 4px 8px; }
+.theme-roulette .empty-result__icon { display: block; margin: 0 auto 20px; width: auto; height: auto; border-radius: 0; background: none; transform: none; }
+.theme-roulette .empty-result strong { margin: 0 0 4px; color: #111; font-size: 28px; font-weight: 400; line-height: 1.3; }
+.theme-roulette .empty-result span { color: #a6a9ba; font-size: 20px; line-height: 1.3; }
+.theme-roulette .primary-button:disabled { opacity: 1; }
+.theme-roulette .result-stage-wrap { padding: 12px 0; container-type: size; }
+.wheel-stage { min-height: 0; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; }
+.wheel-frame { position: relative; flex: none; width: min(100cqw - 24px, 100cqh - 100px, 400px); aspect-ratio: 1; }
+.wheel-frame canvas { display: block; width: 100%; height: 100%; will-change: transform; }
+.wheel-pointer { position: absolute; z-index: 1; left: 50%; top: -7px; width: 0; height: 0; border-left: 11px solid transparent; border-right: 11px solid transparent; border-top: 28px solid var(--primary); transform: translateX(-50%); }
+.wheel-pointer.is-ticking { animation: wheel-tick 90ms ease-out; }
+.wheel-hub { position: absolute; top: 50%; left: 50%; width: 24px; height: 24px; border: 3px solid #111; border-radius: 47% 53% 49% 51%; background: white; transform: translate(-50%, -50%); }
+.wheel-caption { margin: 0; max-width: 100%; text-align: center; color: #7f8394; font-size: 18px; overflow-wrap: anywhere; }
+.wheel-caption strong { display: block; margin-top: 4px; color: var(--primary); font-size: clamp(22px, 4cqh, 36px); line-height: 1.15; }
+.wheel-caption.is-winner { animation: winner-pop 420ms cubic-bezier(.2,1.5,.4,1); }
+@keyframes wheel-tick { 50% { transform: translateX(-50%) rotate(-18deg); } }
+@keyframes winner-pop { from { transform: scale(.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+@media (max-width: 1100px) {
+  body[data-route="home"] .card-copy { padding: 20px; }
+}
+@media (max-width: 900px) {
+  body[data-route="home"] .site-header { padding-top: 48px; }
+  body[data-route="home"] .home { width: calc(100% - 40px); margin-top: 48px; }
+  body[data-route="home"] .game-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  body[data-route="home"] .card-copy strong { font-size: 28px; }
+  body[data-route="home"] .card-copy > span { font-size: 16px; }
+  body[data-route="home"] .home-actions { right: 20px; bottom: 20px; }
+  .theme-roulette .empty-result strong { font-size: 20px; }
+  .theme-roulette .empty-result span { font-size: 14px; }
+  .theme-roulette .empty-result__icon { transform: scale(.7); margin-bottom: 0; }
+  .wheel-stage { gap: 8px; }
+  .wheel-frame { width: min(100cqw - 24px, 100cqh - 76px, 320px); }
+  .wheel-caption { font-size: 14px; }
+  .wheel-caption strong { font-size: 24px; }
+}
+@media (max-width: 520px) {
+  body[data-route="home"] .brand { width: 230px; height: 92px; }
+  body[data-route="home"] .brand-art { transform: scale(.766667); }
+  body[data-route="home"] .game-grid { gap: 16px; }
+  body[data-route="home"] .game-card { gap: 0; }
+  body[data-route="home"] .card-copy { padding: 18px 14px 12px; min-height: 95px; }
+  body[data-route="home"] .card-copy strong { font-size: 21px; white-space: nowrap; }
+  body[data-route="home"] .card-copy > span { font-size: 13px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .wheel-pointer, .wheel-caption, body[data-route="home"] .game-card { animation: none !important; transition: none; }
+}

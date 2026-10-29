@@ -5,10 +5,11 @@
     dice: "/dice.html",
     pick: "/index.html#pick",
     team: "/index.html#team",
+    roulette: "/index.html#roulette",
   };
   // Frontend route keys <-> backend game_type values.
-  const GAME_TYPE_TO_API = { dice: "dice", pick: "random_pick", team: "teams" };
-  const API_TO_GAME_TYPE = { dice: "dice", random_pick: "pick", teams: "team" };
+  const GAME_TYPE_TO_API = { dice: "dice", pick: "random_pick", team: "teams", roulette: "roulette" };
+  const API_TO_GAME_TYPE = { dice: "dice", random_pick: "pick", teams: "team", roulette: "roulette" };
   const EMOJIS = [
     ["shotgun", "샷건"], ["not-me", "나만 아니면 돼"], ["winner", "이겨서 기분 좋음"],
     ["despair", "절망"], ["drool", "군침이 싹"], ["minus-100m", "-1억"],
@@ -41,6 +42,10 @@
   let leaving = false;
   let failedConnects = 0;
   let heartbeatTimer = null;
+  const typingPeers = new Map();
+  let typingTimer = null;
+  let typingSentAt = 0;
+  let typingActive = false;
 
   function resolveApiBase() {
     const configured = document.querySelector('meta[name="betya-api-base"]')?.content;
@@ -132,7 +137,7 @@
   function renderLobby(gameType = "dice", invite = null, mode = "create") {
     const app = document.querySelector("#app");
     if (!app) return;
-    const gameNames = { dice: "0의 주사위", pick: "아무나 걸려라", team: "팀 나누기" };
+    const gameNames = { dice: "0의 주사위", pick: "아무나 걸려라", team: "팀 나누기", roulette: "돌려돌려" };
     if (!Object.hasOwn(gameNames, gameType)) gameType = "dice";
     // Only one lobby dialog at a time (e.g. a card tapped while an invitation loads).
     app.querySelectorAll(".room-dialog").forEach((existing) => existing.remove());
@@ -143,7 +148,7 @@
     dialog.dataset.mode = invite ? "join" : mode;
     dialog.innerHTML = `
       <div class="room-dialog-heading">
-        <h2 id="room-dialog-title">${dialog.dataset.mode !== "join" && gameType === "pick" ? '<img class="room-dialog-title-art" src="./assets/modal/pick-title.svg" alt="아무나 걸려라" />' : dialog.dataset.mode === "join" ? "방 입장하기" : gameNames[gameType]}</h2>
+        <h2 id="room-dialog-title">${dialog.dataset.mode !== "join" && gameType === "pick" ? '<img class="room-dialog-title-art" src="./assets/modal/pick-title-mono.svg" alt="아무나 걸려라" />' : dialog.dataset.mode === "join" ? "방 입장하기" : gameNames[gameType]}</h2>
         <button class="room-dialog-close" type="button" aria-label="게임 선택으로 돌아가기"><img src="./assets/modal/close.svg" alt="" /></button>
       </div>
       <div class="room-lobby">
@@ -344,12 +349,12 @@
   function mountRoomChrome() {
     if (document.querySelector(".room-bar")) return;
     document.body.classList.add("room-active");
-    const gameTitles = { dice: "0의 주사위", pick: "아무나 걸려라", team: "팀 나누기" };
+    const gameTitles = { dice: "0의 주사위", pick: "아무나 걸려라", team: "팀 나누기", roulette: "돌려돌려" };
     const gameTitle = gameTitles[session.gameType] || gameTitles.dice;
     document.body.insertAdjacentHTML("afterbegin", `
       <header class="room-bar">
         <button class="room-leave" type="button" data-room-leave aria-label="게임 선택 화면으로 돌아가기"><img src="/assets/game/home-icon.svg" alt="" /><span>홈</span></button>
-        <div class="room-game-title room-game-title--${escapeHtml(session.gameType)}" aria-label="${gameTitle}">${session.gameType === "dice" ? '<img src="/assets/game/dice-title.svg" alt="0의 주사위" />' : escapeHtml(gameTitle)}</div>
+        <div class="room-game-title room-game-title--${escapeHtml(session.gameType)}" aria-label="${gameTitle}">${session.gameType === "dice" ? '<img src="/assets/game/dice-title-mono.svg" alt="0의 주사위" />' : escapeHtml(gameTitle)}</div>
         <div class="room-identity">
           <span class="connection-dot" data-connection-dot></span>
           <div><strong data-room-name>방 연결 중…</strong></div>
@@ -365,6 +370,7 @@
           <div class="emoji-grid">${EMOJIS.map(([key, label]) => `<button type="button" title="${label}" aria-label="${label}" data-emoji-key="${key}"><img src="/assets/emojis/${key}.png" alt="" /><span>${label}</span></button>`).join("")}</div>
         </div>
         <form class="chat-compose" data-chat-form>
+          <span class="chat-typing" data-chat-typing hidden aria-live="polite"></span>
           <button class="emoji-button" type="button" aria-label="이모티콘" title="하면해 이모티콘 열기" data-emoji><img src="/assets/game/emoji-icon.svg" alt="" /></button>
           <div class="chat-input-shell"><input maxlength="500" autocomplete="off" placeholder="메시지를 입력하세요" aria-label="채팅 메시지" data-chat-input /><button class="chat-send" type="submit" aria-label="메시지 보내기"><img src="/assets/game/send-icon.svg" alt="" /></button></div>
         </form>
@@ -377,6 +383,18 @@
     document.querySelector("[data-emoji-close]").addEventListener("click", () => setEmojiPicker(false));
     document.querySelectorAll("[data-emoji-key]").forEach((button) => button.addEventListener("click", () => sendEmoji(button.dataset.emojiKey)));
     document.querySelector("[data-chat-form]").addEventListener("submit", sendChat);
+    const chatInput = document.querySelector("[data-chat-input]");
+    chatInput.addEventListener("input", () => {
+      if (!chatInput.value.trim()) return stopTyping();
+      const now = Date.now();
+      if (!typingActive || now - typingSentAt >= 1500) {
+        if (send("chat.typing", { typing: true })) { typingActive = true; typingSentAt = now; }
+      }
+      window.clearTimeout(typingTimer);
+      typingTimer = window.setTimeout(stopTyping, 2500);
+    });
+    chatInput.addEventListener("blur", stopTyping);
+    document.addEventListener("visibilitychange", () => { if (document.hidden) stopTyping(); });
     const transfer = document.querySelector("[data-host-transfer]");
     const hostList = document.querySelector("[data-host-list]");
     transfer.addEventListener("click", () => {
@@ -401,14 +419,14 @@
   function mountSoloChrome() {
     if (document.querySelector(".room-bar")) return;
     const gameType = isDicePage() ? "dice" : window.location.hash.slice(1);
-    const gameTitles = { dice: "0의 주사위", pick: "아무나 걸려라", team: "팀 나누기" };
+    const gameTitles = { dice: "0의 주사위", pick: "아무나 걸려라", team: "팀 나누기", roulette: "돌려돌려" };
     const gameTitle = gameTitles[gameType];
     if (!gameTitle) return;
     document.body.classList.add("room-active", "solo-active");
     document.body.insertAdjacentHTML("afterbegin", `
       <header class="room-bar">
         <button class="room-leave" type="button" data-room-leave aria-label="게임 선택 화면으로 돌아가기"><img src="/assets/game/home-icon.svg" alt="" /><span>홈</span></button>
-        <div class="room-game-title room-game-title--${gameType}" aria-label="${gameTitle}">${gameType === "dice" ? '<img src="/assets/game/dice-title.svg" alt="0의 주사위" />' : gameTitle}</div>
+        <div class="room-game-title room-game-title--${gameType}" aria-label="${gameTitle}">${gameType === "dice" ? '<img src="/assets/game/dice-title-mono.svg" alt="0의 주사위" />' : gameTitle}</div>
         <div class="room-identity" aria-hidden="true"></div>
       </header>`);
     document.querySelector("[data-room-leave]").addEventListener("click", leave);
@@ -417,7 +435,7 @@
   async function copyInviteLink(event) {
     // currentTarget is null once the click dispatch is over, so read it first.
     const button = event.currentTarget;
-    const inviteUrl = `${window.location.origin}/room/${encodeURIComponent(session.code)}`;
+    const inviteUrl = `${window.location.origin}/room/${encodeURIComponent(session.code)}?share=3`;
     try {
       await navigator.clipboard.writeText(inviteUrl);
       button.querySelector("small").textContent = "복사완료";
@@ -519,15 +537,17 @@
           }
         }
         document.dispatchEvent(new CustomEvent("betya-room-ready", { detail: payload.room }));
-        document.dispatchEvent(new CustomEvent("betya-game", { detail: { type: "game.snapshot", payload: { game: payload.game } } }));
+        document.dispatchEvent(new CustomEvent("betya-game", { detail: { type: "game.snapshot", payload: { game: payload.game, server_time_ms: payload.server_time_ms } } }));
         break;
       }
       case "player.joined":
       case "player.updated":
         upsertPlayer(payload.player);
+        if (payload.player.status !== "connected") updateTyping({ player_id: payload.player.player_id, typing: false });
         if (data.type === "player.joined") showChatNotice(`${payload.player.nickname}님이 들어왔어요.`);
         break;
       case "player.left":
+        updateTyping({ player_id: payload.player_id, typing: false });
         if (roomState) roomState.players = roomState.players.filter((player) => player.player_id !== payload.player_id);
         updateRoomHeader();
         showChatNotice(`${payload.nickname}님이 나갔어요.`);
@@ -542,7 +562,11 @@
         if (roomState?.game) document.dispatchEvent(new CustomEvent("betya-game", { detail: { type: "game.snapshot", payload: { game: roomState.game } } }));
         showChatNotice(`${payload.nickname}님이 새 방장이에요.`);
         break;
+      case "chat.typing":
+        updateTyping(payload);
+        break;
       case "chat.message":
+        updateTyping({ player_id: payload.player_id, typing: false });
         appendChat(payload);
         break;
       case "emoji.message":
@@ -552,6 +576,7 @@
         endSession("room closed");
         break;
       case "error":
+        document.dispatchEvent(new CustomEvent("betya-game-error", { detail: payload }));
         showChatNotice(ERROR_MESSAGES[payload.code] || payload.message || "문제가 생겼어요.");
         break;
       default:
@@ -635,12 +660,33 @@
     return true;
   }
 
+  function stopTyping() {
+    window.clearTimeout(typingTimer);
+    if (typingActive) send("chat.typing", { typing: false });
+    typingActive = false;
+  }
+
+  function updateTyping(payload) {
+    if (!payload.player_id || payload.player_id === session?.playerId) return;
+    window.clearTimeout(typingPeers.get(payload.player_id)?.timer);
+    typingPeers.delete(payload.player_id);
+    if (payload.typing === true && roomState?.players.some(p => p.player_id === payload.player_id && p.status === "connected")) {
+      typingPeers.set(payload.player_id, { nickname: payload.nickname, timer: window.setTimeout(() => updateTyping({ player_id: payload.player_id, typing: false }), 4000) });
+    }
+    const indicator = document.querySelector("[data-chat-typing]");
+    if (!indicator) return;
+    const names = [...typingPeers.values()].map(p => p.nickname);
+    indicator.textContent = names.length ? names.join(", ") + "님이 입력중이에요..." : "";
+    indicator.hidden = !names.length;
+  }
+
   function sendChat(event) {
     event.preventDefault();
     const input = document.querySelector("[data-chat-input]");
     const text = input.value.trim();
     if (!text || !send("chat.send", { text })) return;
     input.value = "";
+    stopTyping();
     input.focus();
   }
 

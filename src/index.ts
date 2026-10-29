@@ -1,6 +1,6 @@
 import { DurableObject } from "cloudflare:workers";
 
-type GameType = "dice" | "random_pick" | "teams";
+type GameType = "dice" | "random_pick" | "teams" | "roulette";
 type PlayerStatus = "pending" | "connected" | "disconnected";
 
 interface Player {
@@ -39,6 +39,7 @@ interface GameState {
   pairs?: [string, string][];
   teams?: string[][];
   animation_until_ms?: number;
+  spin?: { winner_index: number; turns: number; started_at_ms: number; duration_ms: number } | null;
 }
 
 interface RoomState {
@@ -123,6 +124,9 @@ function gameFor(type: GameType): GameState {
   if (type === "random_pick") return {
     type, revision: 0, status: "idle", items: [], pick_count: 1, winners: [],
   };
+  if (type === "roulette") return {
+    type, revision: 0, status: "idle", items: ["", ""], spin: null,
+  };
   return {
     type, revision: 0, status: "idle", people: [], team_count: 2, pairs: [], teams: [],
   };
@@ -167,7 +171,7 @@ function publicRoom(state: RoomState, origin: string) {
     requires_password: state.visibility === "private", game_type: state.game_type,
     player_count: state.players.length, max_players: MAX_PLAYERS,
     is_full: state.players.length >= MAX_PLAYERS, created_at_ms: state.created_at_ms,
-    invite_url: `${origin}/room/${state.code}`,
+    invite_url: `${origin}/room/${state.code}?share=3`,
     host_player_id: state.players.find((player) => player.is_host)?.player_id ?? null,
   };
 }
@@ -331,6 +335,11 @@ export class GameRoom extends DurableObject<Env> {
     if (!state || !player) return this.sendError(socket, "INVALID_SESSION", "방 연결이 끝났어요.");
     const payload = envelope.payload && typeof envelope.payload === "object" && !Array.isArray(envelope.payload)
       ? envelope.payload as Record<string, unknown> : {};
+    if (envelope.type === "chat.typing") {
+      if (typeof payload.typing !== "boolean") return;
+      this.broadcast("chat.typing", { player_id: player.player_id, nickname: player.nickname, typing: payload.typing }, socket);
+      return;
+    }
     if (envelope.type === "chat.send") {
       const value = normalize(payload.text, 500);
       if (!value) return;
@@ -360,10 +369,10 @@ export class GameRoom extends DurableObject<Env> {
     await this.write(state);
     const events: Record<string, string> = {
       "game.configure": "game.updated", "game.roll": "game.rolled",
-      "game.draw": "game.drawn", "game.divide": "game.divided",
+      "game.draw": "game.drawn", "game.divide": "game.divided", "game.spin": "game.spun",
       "game.reset": "game.updated",
     };
-    this.broadcast(events[envelope.type], { game: state.game });
+    this.broadcast(events[envelope.type], { game: state.game, server_time_ms: Date.now() });
   }
 
   private async saveChat(state: RoomState, type: string, payload: Record<string, unknown>): Promise<void> {
@@ -434,6 +443,10 @@ export class GameRoom extends DurableObject<Env> {
         while (names.length < count) names.push("");
         game.player_count = count; game.names = names; game.rolls = Array(count).fill(null);
         game.current_index = 0; game.last_roll = null; game.result = null; game.status = "idle";
+      } else if (game.type === "roulette") {
+        if (!Array.isArray(payload.items) || payload.items.length < 2 || payload.items.length > 24 || payload.items.some(item => typeof item !== "string")) return ["INVALID_INPUT", "항목은 2개부터 24개까지 입력해주세요."];
+        game.items = payload.items.map(item => normalize(item, 40));
+        game.spin = null; game.status = "idle";
       } else if (game.type === "random_pick") {
         if (!Array.isArray(payload.items)) return ["INVALID_INPUT", "뽑을 항목을 확인해주세요."];
         const items = Array.from(new Set(payload.items.slice(0, 100).map((item) => normalize(item, 40)).filter(Boolean)));
@@ -452,10 +465,12 @@ export class GameRoom extends DurableObject<Env> {
       }
       game.animation_until_ms = undefined;
     } else if (type === "game.reset") {
+      if (game.type === "roulette" && (game.animation_until_ms || 0) > Date.now()) return ["INVALID_STATE", "돌림판이 멈춘 뒤 변경해주세요."];
       if (game.type === "dice") {
         game.rolls = Array(game.player_count || 6).fill(null);
         game.current_index = 0; game.last_roll = null; game.result = null;
-      } else if (game.type === "random_pick") game.winners = [];
+      } else if (game.type === "roulette") game.spin = null;
+      else if (game.type === "random_pick") game.winners = [];
       else game.teams = [];
       game.status = "idle"; game.animation_until_ms = undefined;
     } else if (type === "game.roll" && game.type === "dice") {
@@ -487,6 +502,12 @@ export class GameRoom extends DurableObject<Env> {
       if (!game.items?.length || (game.animation_until_ms || 0) > Date.now()) return ["INVALID_STATE", "뽑을 항목을 먼저 넣어주세요."];
       game.winners = shuffle([...game.items]).slice(0, game.pick_count || 1);
       game.status = "complete"; game.animation_until_ms = Date.now() + REVEAL_MS;
+    } else if (type === "game.spin" && game.type === "roulette") {
+      const items = (game.items || []).filter(Boolean);
+      if (items.length < 2 || (game.animation_until_ms || 0) > Date.now()) return ["INVALID_STATE", "항목을 두 개 이상 입력하고 돌림판이 멈춘 뒤 돌려주세요."];
+      game.spin = { winner_index: randomInt(items.length), turns: 6 + randomInt(4), started_at_ms: Date.now(), duration_ms: 7200 + randomInt(1201) };
+      game.animation_until_ms = game.spin.started_at_ms + game.spin.duration_ms;
+      game.status = "complete";
     } else if (type === "game.divide" && game.type === "teams") {
       if (!game.people || game.people.length < 2 || (game.animation_until_ms || 0) > Date.now()) return ["INVALID_STATE", "참가자를 먼저 넣어주세요."];
       game.teams = makeTeams(game.people, game.team_count || 2, game.pairs || []);
@@ -519,7 +540,7 @@ async function handleApi(request: Request, env: Env): Promise<Response> {
     const visibility = body.visibility === "private" ? "private" : "public";
     const password = typeof body.password === "string" ? body.password.slice(0, 64) : "";
     const gameType = body.game_type;
-    if (!name || !nickname || (gameType !== "dice" && gameType !== "random_pick" && gameType !== "teams")) return apiError("INVALID_INPUT", "방 설정을 확인해주세요.");
+    if (!name || !nickname || (gameType !== "dice" && gameType !== "random_pick" && gameType !== "teams" && gameType !== "roulette")) return apiError("INVALID_INPUT", "방 설정을 확인해주세요.");
     if (visibility === "private" && password.length < 4) return apiError("INVALID_INPUT", "비밀번호는 4자 이상 입력해주세요.");
     for (let attempt = 0; attempt < 5; attempt += 1) {
       const code = randomString(8, CODE_ALPHABET);
@@ -567,7 +588,26 @@ export default {
       if (url.pathname.startsWith("/api/")) return await handleApi(request, env);
       const invite = url.pathname.match(/^\/room\/([2-9A-HJ-NP-Z]{8})\/?$/i);
       if (invite && (request.method === "GET" || request.method === "HEAD")) {
-        return Response.redirect(new URL(`/?invite=${invite[1].toUpperCase()}`, url), 302);
+        const code = invite[1].toUpperCase();
+        const info = await env.ROOMS.getByName(code).inspect("", url.origin);
+        const title = info ? `${info.room.name}에 들어와서 내기 할래? 하면 해` : "하면해 — 우리끼리 내기 게임";
+        const page = await env.ASSETS.fetch(new Request(new URL("/", url)));
+        const rewriter = new HTMLRewriter().on("head", { element(element) {
+          element.prepend('<base href="/">', { html: true });
+        } }).on("title", { element(element) {
+          element.setInnerContent(title);
+        } }).on('meta[property="og:title"], meta[name="twitter:title"]', {
+          element(element) { element.setAttribute("content", title); },
+        }).on('meta[property="og:description"], meta[name="twitter:description"], meta[name="description"]', {
+          element(element) { element.setAttribute("content", "하면해-우리끼리 내기 게임"); },
+        }).on('meta[property="og:url"]', {
+          element(element) { element.setAttribute("content", `${url.origin}/room/${code}?share=3`); },
+        });
+        const transformed = rewriter.transform(page);
+        const headers = new Headers(transformed.headers);
+        headers.set("cache-control", "no-store");
+        headers.delete("etag"); headers.delete("last-modified"); headers.delete("content-length");
+        return new Response(request.method === "HEAD" ? null : transformed.body, { status: page.status, headers });
       }
       return env.ASSETS.fetch(request);
     } catch (error) {

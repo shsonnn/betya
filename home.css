@@ -331,3 +331,14 @@ body:has(.room-dialog[open]) { overflow: hidden; }
   .room-dialog .game-choice small { display: none; }
   .room-dialog .lobby-submit { min-height: 40px; }
 }
+
+/* Keep the existing join artwork, anchored to the browser viewport. */
+body[data-route="home"] .home-actions {
+  position: fixed;
+  top: auto;
+  right: 40px;
+  bottom: 40px;
+  left: auto;
+  z-index: 20;
+  margin: 0;
+}
