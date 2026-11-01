@@ -7,7 +7,7 @@ function renderRpsGame() {
   const game = snapshot?.game?.type === "rps" ? snapshot.game : null;
   const round = game?.rps;
   const members = snapshot?.players || [];
-  const me = window.BetyaRoom.session()?.playerId;
+  const me = snapshot?.you?.player_id || window.BetyaRoom.session()?.playerId;
   const host = window.BetyaRoom.isHost();
   const active = round?.active_ids || [];
   const selected = round?.selected_ids || [];
@@ -29,7 +29,7 @@ function renderRpsGame() {
     : result ? result.draw ? "무승부! 다시 선택해주세요." : `${result.loser_ids.map(id => escapeHtml(name(id))).join(", ")}님이 다음 라운드에 남아요.`
     : active.length < 2 ? "다른 참가자를 기다리고 있어요." : !active.includes(me) ? "다음 게임을 기다리고 있어요." : "";
   const revealed = result ? `<div class="rps-revealed">${Object.entries(result.choices).map(([id, choice]) => `<span>${escapeHtml(name(id))}: ${rpsLabels[choice]}</span>`).join("")}</div>` : "";
-  const actionName = round?.phase === "finished" ? "다시하기" : round?.phase === "revealed" ? "다음 라운드" : "결과 공개";
+  const actionName = round?.phase === "finished" ? "다시하기" : round?.phase === "revealed" ? "다음 라운드" : "결과 공유하기";
   const ready = round && !rpsPending && (!choosing || (active.length >= 2 && active.every(id => selected.includes(id))));
   const action = host ? `<button class="primary-button" data-rps-action type="button" ${ready ? "" : "disabled"}><span>${actionName}</span></button>` : "";
   pageShell("rps", "가위바위보", "가위, 바위, 보 중 하나를 골라주세요", setup, `${choices}<div class="rps-summary" role="status">${summary}</div>${revealed}`, action);

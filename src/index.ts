@@ -319,7 +319,7 @@ export class GameRoom extends DurableObject<Env> {
       is_host: false, status: "pending", reconnect_deadline_ms: Date.now() + CONNECT_MS,
     };
     state.players.push(player);
-    if (state.game.type === "rps" && state.game.rps?.phase === "choosing" && !state.game.rps.selected_ids.length) {
+    if (state.game.type === "rps" && state.game.rps?.phase === "choosing" && !state.game.rps.active_ids.includes(player.player_id)) {
       state.game.rps.active_ids.push(player.player_id);
       state.game.revision += 1;
     }

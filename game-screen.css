@@ -429,7 +429,7 @@ body.room-active .chat-input-shell {
   max-height: 140px;
   padding: 0 6px 0 16px;
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   border: 1px solid #cacddb;
   border-radius: 8px;
   background: #fff;
