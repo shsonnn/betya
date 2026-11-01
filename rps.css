@@ -25,6 +25,14 @@
 .theme-rps.rps-guest .result-panel { justify-content: center; }
 .theme-rps .primary-button:disabled { opacity: .45; }
 .room-dialog[data-game="rps"] .solo-button { display: none; }
+
+.room-dialog[data-game="rps"] .room-dialog-actions {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.room-dialog[data-game="rps"] .lobby-submit {
+  grid-column: 1 / -1;
+}
 @media (max-width: 600px) {
   .rps-member { font-size: 16px; }
   .rps-summary { font-size: 17px; }
