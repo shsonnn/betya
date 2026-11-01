@@ -27,6 +27,7 @@ const state = {
   team: { people: [], pairs: [], teams: [], count: 2, isSpinning: false },
 };
 let remoteGameRevision = -1;
+let remoteGameType = null;
 let remoteAnimationId = 0;
 let pickDirty = false;
 let teamDirty = false;
@@ -111,6 +112,7 @@ function renderRoute() {
   document.body.dataset.route = route;
   if (route === "pick") renderPick();
   else if (route === "team") renderTeam();
+  else if (route === "rps") renderRpsGame();
   else if (route === "roulette") renderSpinGame();
   else if (route === "dice") renderDice();
   else renderHome();
@@ -374,6 +376,14 @@ async function animateRoulette(values, isCurrent = () => true) {
 
 function applyRoomGame(detail) {
   const game = detail?.payload?.game;
+  if (game && game.type !== remoteGameType) {
+    remoteGameType = game.type;
+    remoteGameRevision = -1;
+    pickDirty = false;
+    teamDirty = false;
+    remoteAnimationId += 1;
+  }
+  if (game?.type === "rps") { applyRpsGame(detail); return; }
   if (game?.type === "roulette") { applySpinGame(detail); return; }
   if (!inRoom() || !game || game.revision < remoteGameRevision) return;
   if (!isGuest() && detail.type !== "game.drawn" && detail.type !== "game.divided") {

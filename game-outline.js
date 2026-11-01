@@ -1,6 +1,6 @@
 /* A measured SVG stroke keeps the Figma-style hand-drawn outline crisp at every size. */
 (() => {
-  const selector = ".game-card, .room-dialog .segmented-control span, .room-dialog .lobby-submit, .room-dialog .solo-button, .game-settings-frame, .dice-panel .player, .dice-panel .stepper button, .play-area .die-cube, .sketch-input-frame, .chip-list, .chip, .pair-item, .game-stepper__button, .mini-button, .primary-button, .roll-button, .room-leave, .room-code-button, .host-transfer-button, .host-transfer-list, .member-avatar, .chat-message > p, .chat-emoji-bubble, .chat-input-shell";
+  const selector = ".game-card, .room-dialog .segmented-control span, .room-dialog .lobby-submit, .room-dialog .solo-button, .game-settings-frame, .dice-panel .player, .dice-panel .stepper button, .play-area .die-cube, .sketch-input-frame, .chip-list, .chip, .pair-item, .game-stepper__button, .mini-button, .primary-button, .roll-button, .room-leave, .room-code-button, .room-game-select-frame, .host-transfer-button, .host-transfer-list, .member-avatar, .chat-message > p, .chat-emoji-bubble, .chat-input-shell, .chat-new-button";
   const watched = new WeakSet();
   const resizeObserver = new ResizeObserver((entries) => {
     for (const { target } of entries) draw(target);
@@ -37,7 +37,7 @@
     const button = element.matches(".primary-button, .roll-button, .lobby-submit, .solo-button");
     const chatBubble = element.matches(".chat-message > p, .chat-emoji-bubble");
     const chatInput = element.classList.contains("chat-input-shell");
-    const headerButton = element.matches(".room-leave, .room-code-button, .host-transfer-button, .host-transfer-list");
+    const headerButton = element.matches(".room-leave, .room-code-button, .room-game-select-frame, .host-transfer-button, .host-transfer-list, .chat-new-button");
     const edge = panel || die ? 2.6 : button ? 1.8 : headerButton || chatBubble || chatInput ? .9 : 1.5;
     const radius = button ? 14 : headerButton ? 5 : chatBubble ? 8 : panel || die ? 9 : 8;
     const amplitude = panel ? 1.3 : die ? 1.1 : button ? 1 : chatBubble || chatInput || headerButton ? .5 : .75;

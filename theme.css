@@ -58,7 +58,7 @@ body[data-route="home"] {
 }
 body[data-route="home"] .site-header {
   height: auto;
-  padding: max(56px, calc((100svh - 682px) / 2)) 0 0;
+  padding: 120px 0 0;
 }
 body[data-route="home"] .brand { width: 300px; height: 120px; transform: none; }
 body[data-route="home"] .brand-art { transform: none; }
@@ -106,9 +106,16 @@ body[data-route="home"] .card-art--pick img { left: 77.45px; top: 32.19px; }
 body[data-route="home"] .card-art--team .team-left { left: 58.84px; top: 30.35px; }
 body[data-route="home"] .card-art--team .team-right { left: 170.02px; top: 128.32px; }
 body[data-route="home"] .card-art--roulette img { left: 0; top: 0; }
+body[data-route="home"] .card-art--rps img { left: 39.47px; top: 40.5px; }
 
 /* Roulette uses the same settings and result frames as the other games. */
 .roulette-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.theme-roulette .roulette-add-name,
+.theme-roulette .wheel-shuffle-button { --sketch-color: #111; --sketch-fill: #fff; color: #111; cursor: pointer; }
+.theme-roulette .roulette-add-name { align-self: flex-start; min-width: 112px; padding-inline: 12px; }
+.theme-roulette .wheel-shuffle-button { flex: none; min-width: 112px; height: 36px; padding: 0 12px; }
+.theme-roulette :is(.roulette-add-name, .wheel-shuffle-button):disabled { opacity: .48; cursor: default; }
+.theme-roulette :is(.roulette-add-name, .wheel-shuffle-button):is(:hover, :focus-visible):not(:disabled) { --sketch-color: #3e62ff; }
 .roulette-fields .text-input { text-align: center; padding: 0 8px; font-size: 16px; }
 .roulette-fields .text-input::placeholder { color: #a6a9ba; font-size: 14px; }
 .theme-roulette .settings-panel > .helper { margin: 0 4px 8px; }

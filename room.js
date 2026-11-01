@@ -6,10 +6,12 @@
     pick: "/index.html#pick",
     team: "/index.html#team",
     roulette: "/index.html#roulette",
+    rps: "/index.html#rps",
   };
   // Frontend route keys <-> backend game_type values.
-  const GAME_TYPE_TO_API = { dice: "dice", pick: "random_pick", team: "teams", roulette: "roulette" };
-  const API_TO_GAME_TYPE = { dice: "dice", random_pick: "pick", teams: "team", roulette: "roulette" };
+  const GAME_TYPE_TO_API = { dice: "dice", pick: "random_pick", team: "teams", roulette: "roulette", rps: "rps" };
+  const API_TO_GAME_TYPE = { dice: "dice", random_pick: "pick", teams: "team", roulette: "roulette", rps: "rps" };
+  const GAME_NAMES = { dice: "0의 주사위", pick: "아무나 걸려라", team: "팀 나누기", roulette: "돌려돌려", rps: "가위바위보" };
   const EMOJIS = [
     ["shotgun", "샷건"], ["not-me", "나만 아니면 돼"], ["winner", "이겨서 기분 좋음"],
     ["despair", "절망"], ["drool", "군침이 싹"], ["minus-100m", "-1억"],
@@ -81,8 +83,13 @@
   }
 
   function leave() {
+    if (leaving) return;
     leaving = true;
     window.clearTimeout(reconnectTimer);
+    window.clearInterval(heartbeatTimer);
+    stopTyping();
+    for (const peer of typingPeers.values()) window.clearTimeout(peer.timer);
+    typingPeers.clear();
     if (session) {
       // keepalive lets the request finish while the page navigates away.
       fetch(`${resolveApiBase()}/api/rooms/${encodeURIComponent(session.code)}/leave`, {
@@ -93,8 +100,22 @@
     }
     if (socket && socket.readyState < WebSocket.CLOSING) socket.close(1000, "left room");
     clearSession();
+    roomState = null;
+    document.querySelectorAll(".room-bar, .chat-panel").forEach(element => element.remove());
+    document.body.classList.remove("room-active", "solo-active");
     window.location.replace("/index.html");
   }
+
+  // History navigation bypasses the Home button, including cached-page restores.
+  function handleHistoryNavigation() {
+    const home = isIndexPage() && (!location.hash || location.hash === "#home");
+    if (home && document.body.classList.contains("room-active")) leave();
+  }
+  window.addEventListener("popstate", handleHistoryNavigation);
+  window.addEventListener("hashchange", handleHistoryNavigation);
+  window.addEventListener("pageshow", (event) => {
+    if (event.persisted) handleHistoryNavigation();
+  });
 
   function isDicePage() {
     return window.location.pathname.endsWith("dice.html") || window.location.pathname.endsWith("/dice");
@@ -137,7 +158,7 @@
   function renderLobby(gameType = "dice", invite = null, mode = "create") {
     const app = document.querySelector("#app");
     if (!app) return;
-    const gameNames = { dice: "0의 주사위", pick: "아무나 걸려라", team: "팀 나누기", roulette: "돌려돌려" };
+    const gameNames = GAME_NAMES;
     if (!Object.hasOwn(gameNames, gameType)) gameType = "dice";
     // Only one lobby dialog at a time (e.g. a card tapped while an invitation loads).
     app.querySelectorAll(".room-dialog").forEach((existing) => existing.remove());
@@ -188,6 +209,7 @@
     }, { once: true });
     dialog.querySelector(".room-dialog-close").addEventListener("click", () => dialog.close());
     dialog.querySelector("[data-solo]").addEventListener("click", () => {
+      if (gameType === "rps") return;
       window.location.assign(gameType === "dice" ? "/dice?solo=1" : `/?solo=1#${gameType}`);
     });
     dialog.addEventListener("click", (event) => {
@@ -349,12 +371,11 @@
   function mountRoomChrome() {
     if (document.querySelector(".room-bar")) return;
     document.body.classList.add("room-active");
-    const gameTitles = { dice: "0의 주사위", pick: "아무나 걸려라", team: "팀 나누기", roulette: "돌려돌려" };
-    const gameTitle = gameTitles[session.gameType] || gameTitles.dice;
+    const gameTitle = GAME_NAMES[session.gameType] || GAME_NAMES.dice;
     document.body.insertAdjacentHTML("afterbegin", `
       <header class="room-bar">
         <button class="room-leave" type="button" data-room-leave aria-label="게임 선택 화면으로 돌아가기"><img src="/assets/game/home-icon.svg" alt="" /><span>홈</span></button>
-        <div class="room-game-title room-game-title--${escapeHtml(session.gameType)}" aria-label="${gameTitle}">${session.gameType === "dice" ? '<img src="/assets/game/dice-title-mono.svg" alt="0의 주사위" />' : escapeHtml(gameTitle)}</div>
+        <div class="room-game-switch"><div class="room-game-title room-game-title--${escapeHtml(session.gameType)}" aria-label="${gameTitle}">${session.gameType === "dice" ? '<img src="/assets/game/dice-title-mono.svg" alt="0의 주사위" />' : escapeHtml(gameTitle)}</div><span class="room-game-select-frame" hidden><select class="room-game-select" data-game-switch aria-label="게임 종류 바꾸기">${Object.entries(GAME_NAMES).map(([key, title]) => `<option value="${key}"${key === session.gameType ? " selected" : ""}>${title}</option>`).join("")}</select></span></div>
         <div class="room-identity">
           <span class="connection-dot" data-connection-dot></span>
           <div><strong data-room-name>방 연결 중…</strong></div>
@@ -365,6 +386,7 @@
       <aside class="chat-panel" aria-label="방 채팅">
         <header><div class="chat-heading"><strong>채팅</strong><span class="chat-member-count">(<b data-member-count>1명</b> 참여 중)</span></div><div class="room-members host-control"><button type="button" class="host-transfer-button" data-host-transfer aria-expanded="false" aria-controls="host-transfer-list" hidden>방장 바꾸기</button><span class="host-name" data-host-name hidden></span><div class="host-transfer-list" id="host-transfer-list" data-host-list hidden></div></div><button type="button" class="chat-close" aria-label="채팅 닫기" data-chat-close>×</button></header>
         <div class="chat-messages" data-chat-messages aria-live="polite"><p class="chat-empty">방에 연결되면 대화를 시작할 수 있어요.</p></div>
+        <button class="chat-new-button" type="button" data-chat-new hidden>새 채팅으로 돌아가기</button>
         <div class="emoji-picker" data-emoji-picker hidden>
           <div class="emoji-picker__head"><strong>하면해 이모티콘</strong><button type="button" aria-label="이모티콘 닫기" data-emoji-close>×</button></div>
           <div class="emoji-grid">${EMOJIS.map(([key, label]) => `<button type="button" title="${label}" aria-label="${label}" data-emoji-key="${key}"><img src="/assets/emojis/${key}.png" alt="" /><span>${label}</span></button>`).join("")}</div>
@@ -372,7 +394,7 @@
         <form class="chat-compose" data-chat-form>
           <span class="chat-typing" data-chat-typing hidden aria-live="polite"></span>
           <button class="emoji-button" type="button" aria-label="이모티콘" title="하면해 이모티콘 열기" data-emoji><img src="/assets/game/emoji-icon.svg" alt="" /></button>
-          <div class="chat-input-shell"><input maxlength="500" autocomplete="off" placeholder="메시지를 입력하세요" aria-label="채팅 메시지" data-chat-input /><button class="chat-send" type="submit" aria-label="메시지 보내기"><img src="/assets/game/send-icon.svg" alt="" /></button></div>
+          <div class="chat-input-shell"><textarea rows="1" maxlength="500" autocomplete="off" placeholder="메시지를 입력하세요" aria-label="채팅 메시지" data-chat-input></textarea><button class="chat-send" type="submit" aria-label="메시지 보내기"><img src="/assets/game/send-icon.svg" alt="" /></button></div>
         </form>
       </aside>`);
     document.querySelector("[data-room-leave]").addEventListener("click", leave);
@@ -384,7 +406,15 @@
     document.querySelectorAll("[data-emoji-key]").forEach((button) => button.addEventListener("click", () => sendEmoji(button.dataset.emojiKey)));
     document.querySelector("[data-chat-form]").addEventListener("submit", sendChat);
     const chatInput = document.querySelector("[data-chat-input]");
+    chatInput.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" && !event.shiftKey && !event.isComposing) {
+        event.preventDefault();
+        chatInput.form.requestSubmit();
+      }
+    });
     chatInput.addEventListener("input", () => {
+      chatInput.style.height = "20px";
+      chatInput.style.height = `${Math.min(chatInput.scrollHeight, 120)}px`;
       if (!chatInput.value.trim()) return stopTyping();
       const now = Date.now();
       if (!typingActive || now - typingSentAt >= 1500) {
@@ -394,6 +424,22 @@
       typingTimer = window.setTimeout(stopTyping, 2500);
     });
     chatInput.addEventListener("blur", stopTyping);
+    const chatList = document.querySelector("[data-chat-messages]");
+    chatList.addEventListener("scroll", () => {
+      if (isChatAtBottom(chatList)) document.querySelector("[data-chat-new]").hidden = true;
+    });
+    document.querySelector("[data-chat-new]").addEventListener("click", () => {
+      chatList.scrollTo({ top: chatList.scrollHeight, behavior: "smooth" });
+      document.querySelector("[data-chat-new]").hidden = true;
+    });
+    document.querySelector("[data-game-switch]").addEventListener("change", (event) => {
+      const value = event.currentTarget.value;
+      if (!roomState || session?.role !== "host" || !GAME_TYPE_TO_API[value] || !send("game.switch", { game_type: GAME_TYPE_TO_API[value] })) {
+        event.currentTarget.value = session?.gameType || "dice";
+        return;
+      }
+      event.currentTarget.disabled = true;
+    });
     document.addEventListener("visibilitychange", () => { if (document.hidden) stopTyping(); });
     const transfer = document.querySelector("[data-host-transfer]");
     const hostList = document.querySelector("[data-host-list]");
@@ -419,7 +465,7 @@
   function mountSoloChrome() {
     if (document.querySelector(".room-bar")) return;
     const gameType = isDicePage() ? "dice" : window.location.hash.slice(1);
-    const gameTitles = { dice: "0의 주사위", pick: "아무나 걸려라", team: "팀 나누기", roulette: "돌려돌려" };
+    const gameTitles = GAME_NAMES;
     const gameTitle = gameTitles[gameType];
     if (!gameTitle) return;
     document.body.classList.add("room-active", "solo-active");
@@ -446,6 +492,7 @@
   }
 
   function connect() {
+    if (leaving || !session) return;
     mountRoomChrome();
     const wsBase = resolveApiBase().replace(/^http/, "ws");
     socket = new WebSocket(`${wsBase}/api/rooms/${encodeURIComponent(session.code)}/ws`);
@@ -498,12 +545,15 @@
   }
 
   async function verifySession() {
+    if (leaving || !session) return;
     try {
       const data = await api(`/api/rooms/${encodeURIComponent(session.code)}`);
+      if (leaving || !session) return;
       if (!data.session) return endSession();
       failedConnects = 0;
       reconnectTimer = window.setTimeout(connect, 1800);
     } catch (caught) {
+      if (leaving || !session) return;
       if (caught.status === 404) return endSession();
       reconnectTimer = window.setTimeout(verifySession, 5000);
     }
@@ -517,6 +567,7 @@
   }
 
   function handleSocketMessage(event) {
+    if (leaving || !session) return;
     if (event.data === "pong") return;
     let data;
     try { data = JSON.parse(event.data); } catch { return; }
@@ -538,6 +589,7 @@
         }
         document.dispatchEvent(new CustomEvent("betya-room-ready", { detail: payload.room }));
         document.dispatchEvent(new CustomEvent("betya-game", { detail: { type: "game.snapshot", payload: { game: payload.game, server_time_ms: payload.server_time_ms } } }));
+        syncGameRoute(payload.game);
         break;
       }
       case "player.joined":
@@ -576,6 +628,8 @@
         endSession("room closed");
         break;
       case "error":
+        const gameSelect = document.querySelector("[data-game-switch]");
+        if (gameSelect) { gameSelect.disabled = false; gameSelect.value = session.gameType; }
         document.dispatchEvent(new CustomEvent("betya-game-error", { detail: payload }));
         showChatNotice(ERROR_MESSAGES[payload.code] || payload.message || "문제가 생겼어요.");
         break;
@@ -583,6 +637,7 @@
         if (data.type?.startsWith("game.")) {
           if (roomState && payload.game) roomState.game = payload.game;
           document.dispatchEvent(new CustomEvent("betya-game", { detail: data }));
+          if (payload.game) syncGameRoute(payload.game);
         }
     }
   }
@@ -607,6 +662,8 @@
     const label = document.querySelector("[data-host-name]");
     const list = document.querySelector("[data-host-list]");
     button.hidden = !isHost;
+    const gameSelect = document.querySelector("[data-game-switch]");
+    if (gameSelect) gameSelect.parentElement.hidden = !isHost;
     label.hidden = isHost;
     label.textContent = "방장:" + (host?.nickname || "");
     if (!isHost) {
@@ -647,6 +704,22 @@
       empty.textContent = "현재 접속 중인 다른 참가자가 없어요.";
       list.append(empty);
     }
+    document.dispatchEvent(new CustomEvent("betya-room-members"));
+  }
+
+  function syncGameRoute(game) {
+    const next = API_TO_GAME_TYPE[game?.type];
+    if (!next) return;
+    if (session?.gameType !== next) saveSession({ ...session, gameType: next });
+    const select = document.querySelector("[data-game-switch]");
+    if (select) { select.value = next; select.disabled = false; }
+    const title = document.querySelector(".room-game-title");
+    if (title) {
+      title.className = `room-game-title room-game-title--${next}`;
+      title.setAttribute("aria-label", GAME_NAMES[next]);
+      title.innerHTML = next === "dice" ? '<img src="/assets/game/dice-title-mono.svg" alt="0의 주사위" />' : escapeHtml(GAME_NAMES[next]);
+    }
+    if (next !== (isDicePage() ? "dice" : location.hash.slice(1))) goToGame(next);
   }
 
   function setConnectionStatus(status) {
@@ -686,6 +759,7 @@
     const text = input.value.trim();
     if (!text || !send("chat.send", { text })) return;
     input.value = "";
+    input.style.height = "20px";
     stopTyping();
     input.focus();
   }
@@ -719,6 +793,7 @@
 
   function appendMessage(message, content) {
     const list = document.querySelector("[data-chat-messages]");
+    const followLatest = isChatAtBottom(list);
     list.querySelector(".chat-empty")?.remove();
     const minute = String(messageMinute(message));
     const previous = list.lastElementChild;
@@ -739,7 +814,16 @@
     if (content.classList.contains("chat-emoji-bubble")) group.classList.add("chat-message--emoji");
     group.append(content);
     while (list.children.length > 200) list.firstElementChild.remove();
-    list.scrollTop = list.scrollHeight;
+    finishChatAppend(list, followLatest);
+  }
+
+  function isChatAtBottom(list) {
+    return list.scrollHeight - list.scrollTop - list.clientHeight < 48;
+  }
+
+  function finishChatAppend(list, followLatest) {
+    if (followLatest) list.scrollTop = list.scrollHeight;
+    else document.querySelector("[data-chat-new]").hidden = false;
   }
 
   function appendChat(message) {
@@ -765,12 +849,13 @@
   function showChatNotice(text) {
     const list = document.querySelector("[data-chat-messages]");
     if (!list) return;
+    const followLatest = isChatAtBottom(list);
     list.querySelector(".chat-empty")?.remove();
     const notice = document.createElement("p");
     notice.className = "chat-notice";
     notice.textContent = text;
     list.append(notice);
-    list.scrollTop = list.scrollHeight;
+    finishChatAppend(list, followLatest);
   }
 
   // Game pages use the room snapshot and game events as their shared source of truth.

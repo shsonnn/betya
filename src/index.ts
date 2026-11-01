@@ -1,7 +1,8 @@
 import { DurableObject } from "cloudflare:workers";
 
-type GameType = "dice" | "random_pick" | "teams" | "roulette";
+type GameType = "dice" | "random_pick" | "teams" | "roulette" | "rps";
 type PlayerStatus = "pending" | "connected" | "disconnected";
+type RpsChoice = "scissors" | "rock" | "paper";
 
 interface Player {
   player_id: string;
@@ -19,6 +20,17 @@ interface DiceRoll {
   second: number;
   sum: number;
   lastDigit: number;
+}
+
+interface RpsRound {
+  round: number;
+  phase: "choosing" | "revealed" | "finished";
+  active_ids: string[];
+  choices: Record<string, RpsChoice>;
+  selected_ids: string[];
+  your_choice?: RpsChoice;
+  result?: { draw: boolean; loser_ids: string[]; choices: Record<string, RpsChoice> } | null;
+  final_loser_id?: string | null;
 }
 
 interface GameState {
@@ -40,6 +52,7 @@ interface GameState {
   teams?: string[][];
   animation_until_ms?: number;
   spin?: { winner_index: number; turns: number; started_at_ms: number; duration_ms: number } | null;
+  rps?: RpsRound;
 }
 
 interface RoomState {
@@ -86,6 +99,17 @@ function normalize(value: unknown, max: number): string {
   return typeof value === "string" ? value.trim().replace(/\s+/g, " ").slice(0, max) : "";
 }
 
+function normalizeChat(value: unknown): string {
+  if (typeof value !== "string") return "";
+  return value
+    .replace(/\r\n?/g, "\n")
+    .replace(/[\t\f\v ]+/g, " ")
+    .replace(/ *\n */g, "\n")
+    .replace(/\n{4,}/g, "\n\n\n")
+    .trim()
+    .slice(0, 500);
+}
+
 function randomInt(max: number): number {
   const limit = Math.floor(0x100000000 / max) * max;
   const value = new Uint32Array(1);
@@ -127,9 +151,44 @@ function gameFor(type: GameType): GameState {
   if (type === "roulette") return {
     type, revision: 0, status: "idle", items: ["", ""], spin: null,
   };
+  if (type === "rps") return {
+    type, revision: 0, status: "idle",
+    rps: { round: 1, phase: "choosing", active_ids: [], choices: {}, selected_ids: [], result: null, final_loser_id: null },
+  };
   return {
     type, revision: 0, status: "idle", people: [], team_count: 2, pairs: [], teams: [],
   };
+}
+
+function publicGame(game: GameState, playerId: string): GameState {
+  if (game.type !== "rps" || !game.rps) return game;
+  const copy = structuredClone(game);
+  if (!copy.rps) return copy;
+  copy.rps.your_choice = copy.rps.choices[playerId];
+  copy.rps.choices = {};
+  return copy;
+}
+
+function resetRps(game: GameState, playerIds: string[]): void {
+  game.status = "idle";
+  game.rps = {
+    round: 1,
+    phase: "choosing",
+    active_ids: [...playerIds],
+    choices: {},
+    selected_ids: [],
+    result: null,
+    final_loser_id: null,
+  };
+}
+
+function rpsOutcome(choices: Record<string, RpsChoice>, activeIds: string[]): { draw: boolean; loser_ids: string[] } {
+  const values = new Set(activeIds.map((id) => choices[id]));
+  if (values.size !== 2) return { draw: true, loser_ids: [] };
+  const losing: Record<RpsChoice, RpsChoice> = { rock: "scissors", scissors: "paper", paper: "rock" };
+  const [first, second] = Array.from(values) as [RpsChoice, RpsChoice];
+  const losingChoice = losing[first] === second ? second : first;
+  return { draw: false, loser_ids: activeIds.filter((id) => choices[id] === losingChoice) };
 }
 
 function shuffle<T>(values: T[]): T[] {
@@ -234,6 +293,7 @@ export class GameRoom extends DurableObject<Env> {
       game_type: input.game_type, created_at_ms: now, expires_at_ms: now + ROOM_TTL_MS,
       players: [player], game: gameFor(input.game_type),
     };
+    if (state.game.type === "rps") resetRps(state.game, [player.player_id]);
     await this.write(state);
     await this.scheduleAlarm(state);
     return { token, room: publicRoom(state, input.origin), player: publicPlayer(player) };
@@ -259,9 +319,14 @@ export class GameRoom extends DurableObject<Env> {
       is_host: false, status: "pending", reconnect_deadline_ms: Date.now() + CONNECT_MS,
     };
     state.players.push(player);
+    if (state.game.type === "rps" && state.game.rps?.phase === "choosing" && !state.game.rps.selected_ids.length) {
+      state.game.rps.active_ids.push(player.player_id);
+      state.game.revision += 1;
+    }
     await this.write(state);
     await this.scheduleAlarm(state);
     this.broadcast("player.joined", { player: publicPlayer(player) });
+    if (state.game.type === "rps") this.broadcastGame("game.updated", state);
     return { token, room: publicRoom(state, origin), player: publicPlayer(player) };
   }
 
@@ -271,6 +336,12 @@ export class GameRoom extends DurableObject<Env> {
     const player = await this.player(state, token);
     if (!player) return false;
     state.players = state.players.filter((candidate) => candidate.player_id !== player.player_id);
+    if (state.game.type === "rps" && state.game.rps) {
+      state.game.rps.active_ids = state.game.rps.active_ids.filter((id) => id !== player.player_id);
+      delete state.game.rps.choices[player.player_id];
+      state.game.rps.selected_ids = state.game.rps.selected_ids.filter((id) => id !== player.player_id);
+      state.game.revision += 1;
+    }
     for (const socket of this.ctx.getWebSockets()) {
       if ((socket.deserializeAttachment() as SocketAttachment | null)?.player_id === player.player_id) socket.close(1000, "left room");
     }
@@ -286,6 +357,7 @@ export class GameRoom extends DurableObject<Env> {
     }
     await this.write(state);
     await this.scheduleAlarm(state);
+    if (state.game.type === "rps") this.broadcastGame("game.updated", state);
     return true;
   }
 
@@ -314,7 +386,7 @@ export class GameRoom extends DurableObject<Env> {
         room: publicRoom(state, new URL(request.url).origin),
         players: state.players.map(publicPlayer),
         you: { player_id: player.player_id },
-        game: state.game,
+        game: publicGame(state.game, player.player_id),
         chat_history: Array.from((await this.ctx.storage.list({ prefix: "chat:", limit: 200 })).values()),
         server_time_ms: Date.now(),
       },
@@ -341,7 +413,7 @@ export class GameRoom extends DurableObject<Env> {
       return;
     }
     if (envelope.type === "chat.send") {
-      const value = normalize(payload.text, 500);
+      const value = normalizeChat(payload.text);
       if (!value) return;
       await this.saveChat(state, "chat.message", { player_id: player.player_id, nickname: player.nickname, text: value, sent_at: Date.now() });
       return;
@@ -363,16 +435,19 @@ export class GameRoom extends DurableObject<Env> {
       return;
     }
     if (typeof envelope.type !== "string" || !envelope.type.startsWith("game.")) return;
-    if (!player.is_host) return this.sendError(socket, "FORBIDDEN", "방장만 게임을 진행할 수 있어요.");
-    const error = this.applyGame(state, envelope.type, payload);
+    const isPrivateRpsChoice = envelope.type === "game.rps.choose";
+    if (!isPrivateRpsChoice && !player.is_host) return this.sendError(socket, "FORBIDDEN", "방장만 게임을 진행할 수 있어요.");
+    const error = this.applyGame(state, envelope.type, payload, player.player_id);
     if (error) return this.sendError(socket, error[0], error[1]);
     await this.write(state);
     const events: Record<string, string> = {
       "game.configure": "game.updated", "game.roll": "game.rolled",
       "game.draw": "game.drawn", "game.divide": "game.divided", "game.spin": "game.spun",
+      "game.switch": "game.switched", "game.rps.choose": "game.rps.updated",
+      "game.rps.reveal": "game.rps.updated", "game.rps.next": "game.rps.updated",
       "game.reset": "game.updated",
     };
-    this.broadcast(events[envelope.type], { game: state.game, server_time_ms: Date.now() });
+    this.broadcastGame(events[envelope.type], state);
   }
 
   private async saveChat(state: RoomState, type: string, payload: Record<string, unknown>): Promise<void> {
@@ -417,6 +492,13 @@ export class GameRoom extends DurableObject<Env> {
     const expired = state.players.filter((player) => player.status !== "connected" && (player.reconnect_deadline_ms || Infinity) <= Date.now());
     if (expired.length) {
       state.players = state.players.filter((player) => !expired.includes(player));
+      if (state.game.type === "rps" && state.game.rps) {
+        const expiredIds = new Set(expired.map((player) => player.player_id));
+        state.game.rps.active_ids = state.game.rps.active_ids.filter((id) => !expiredIds.has(id));
+        state.game.rps.selected_ids = state.game.rps.selected_ids.filter((id) => !expiredIds.has(id));
+        for (const id of expiredIds) delete state.game.rps.choices[id];
+        state.game.revision += 1;
+      }
       for (const player of expired) this.broadcast("player.left", { player_id: player.player_id, nickname: player.nickname });
       if (!state.players.length) {
         await this.ctx.storage.deleteAll();
@@ -428,11 +510,24 @@ export class GameRoom extends DurableObject<Env> {
         this.broadcast("host.changed", { host_player_id: next.player_id, nickname: next.nickname });
       }
       await this.write(state);
+      if (state.game.type === "rps") this.broadcastGame("game.updated", state);
     }
     await this.scheduleAlarm(state);
   }
 
-  private applyGame(state: RoomState, type: string, payload: Record<string, unknown>): [string, string] | null {
+  private applyGame(state: RoomState, type: string, payload: Record<string, unknown>, playerId: string): [string, string] | null {
+    if (type === "game.switch") {
+      const next = payload.game_type;
+      if (next !== "dice" && next !== "random_pick" && next !== "teams" && next !== "roulette" && next !== "rps") return ["INVALID_INPUT", "지원하지 않는 게임이에요."];
+      if ((state.game.animation_until_ms || 0) > Date.now()) return ["INVALID_STATE", "진행 중인 결과가 끝난 뒤 게임을 바꿔주세요."];
+      if (next === state.game.type) return null;
+      const revision = state.game.revision + 1;
+      state.game_type = next;
+      state.game = gameFor(next);
+      state.game.revision = revision;
+      if (next === "rps") resetRps(state.game, state.players.map((player) => player.player_id));
+      return null;
+    }
     const game = state.game;
     if (type === "game.configure") {
       if (game.animation_until_ms && game.animation_until_ms > Date.now()) return ["INVALID_STATE", "결과 발표가 끝난 뒤 변경해주세요."];
@@ -453,7 +548,7 @@ export class GameRoom extends DurableObject<Env> {
         const count = Number(payload.pick_count);
         if (!Number.isInteger(count) || count < 1 || count > Math.max(1, items.length)) return ["INVALID_INPUT", "당첨 인원을 확인해주세요."];
         game.items = items; game.pick_count = count; game.winners = []; game.status = "idle";
-      } else {
+      } else if (game.type === "teams") {
         if (!Array.isArray(payload.people) || !Array.isArray(payload.pairs)) return ["INVALID_INPUT", "참가자 설정을 확인해주세요."];
         const people = Array.from(new Set(payload.people.slice(0, 100).map((name) => normalize(name, 40)).filter(Boolean)));
         const count = Number(payload.team_count);
@@ -462,7 +557,7 @@ export class GameRoom extends DurableObject<Env> {
           .map((pair) => [normalize(pair[0], 40), normalize(pair[1], 40)] as [string, string])
           .filter(([a, b]) => a !== b && people.includes(a) && people.includes(b));
         game.people = people; game.team_count = count; game.pairs = pairs; game.teams = []; game.status = "idle";
-      }
+      } else return ["INVALID_INPUT", "이 게임에서는 설정을 바꿀 수 없어요."];
       game.animation_until_ms = undefined;
     } else if (type === "game.reset") {
       if (game.type === "roulette" && (game.animation_until_ms || 0) > Date.now()) return ["INVALID_STATE", "돌림판이 멈춘 뒤 변경해주세요."];
@@ -471,6 +566,7 @@ export class GameRoom extends DurableObject<Env> {
         game.current_index = 0; game.last_roll = null; game.result = null;
       } else if (game.type === "roulette") game.spin = null;
       else if (game.type === "random_pick") game.winners = [];
+      else if (game.type === "rps") resetRps(game, state.players.map((player) => player.player_id));
       else game.teams = [];
       game.status = "idle"; game.animation_until_ms = undefined;
     } else if (type === "game.roll" && game.type === "dice") {
@@ -512,6 +608,37 @@ export class GameRoom extends DurableObject<Env> {
       if (!game.people || game.people.length < 2 || (game.animation_until_ms || 0) > Date.now()) return ["INVALID_STATE", "참가자를 먼저 넣어주세요."];
       game.teams = makeTeams(game.people, game.team_count || 2, game.pairs || []);
       game.status = "complete"; game.animation_until_ms = Date.now() + REVEAL_MS;
+    } else if (type === "game.rps.choose" && game.type === "rps" && game.rps) {
+      const choice = payload.choice;
+      const round = Number(payload.round);
+      if ((choice !== "scissors" && choice !== "rock" && choice !== "paper") || round !== game.rps.round) return ["INVALID_INPUT", "현재 라운드의 가위, 바위, 보 중 하나를 골라주세요."];
+      if (game.rps.phase !== "choosing" || !game.rps.active_ids.includes(playerId)) return ["INVALID_STATE", "지금은 선택할 수 없어요."];
+      game.rps.choices[playerId] = choice;
+      game.rps.selected_ids = game.rps.active_ids.filter((id) => Boolean(game.rps?.choices[id]));
+      game.status = "in_progress";
+    } else if (type === "game.rps.reveal" && game.type === "rps" && game.rps) {
+      const round = Number(payload.round);
+      if (round !== game.rps.round || game.rps.phase !== "choosing" || game.rps.active_ids.length < 2 || !game.rps.active_ids.every((id) => game.rps?.choices[id])) return ["INVALID_STATE", "모든 참여자가 선택한 뒤 결과를 공개해주세요."];
+      const outcome = rpsOutcome(game.rps.choices, game.rps.active_ids);
+      game.rps.result = { ...outcome, choices: { ...game.rps.choices } };
+      game.rps.phase = "revealed";
+      game.status = "complete";
+    } else if (type === "game.rps.next" && game.type === "rps" && game.rps) {
+      const round = Number(payload.round);
+      if (round !== game.rps.round || game.rps.phase !== "revealed" || !game.rps.result) return ["INVALID_STATE", "공개된 결과가 없어요."];
+      if (!game.rps.result.draw && game.rps.result.loser_ids.length === 1) {
+        game.rps.phase = "finished";
+        game.rps.final_loser_id = game.rps.result.loser_ids[0];
+        game.status = "complete";
+      } else {
+        if (!game.rps.result.draw) game.rps.active_ids = [...game.rps.result.loser_ids];
+        game.rps.round += 1;
+        game.rps.phase = "choosing";
+        game.rps.choices = {};
+        game.rps.selected_ids = [];
+        game.rps.result = null;
+        game.status = "in_progress";
+      }
     } else return ["INVALID_INPUT", "지원하지 않는 게임 동작이에요."];
     game.revision += 1;
     return null;
@@ -528,6 +655,18 @@ export class GameRoom extends DurableObject<Env> {
       try { socket.send(message); } catch { /* Closed sockets disappear from getWebSockets. */ }
     }
   }
+
+  private broadcastGame(type: string, state: RoomState): void {
+    const serverTime = Date.now();
+    for (const socket of this.ctx.getWebSockets()) {
+      if (socket.readyState !== WebSocket.OPEN) continue;
+      const playerId = (socket.deserializeAttachment() as SocketAttachment | null)?.player_id;
+      if (!playerId) continue;
+      try {
+        socket.send(JSON.stringify({ type, payload: { game: publicGame(state.game, playerId), server_time_ms: serverTime } }));
+      } catch { /* Closed sockets disappear from getWebSockets. */ }
+    }
+  }
 }
 
 async function handleApi(request: Request, env: Env): Promise<Response> {
@@ -540,7 +679,7 @@ async function handleApi(request: Request, env: Env): Promise<Response> {
     const visibility = body.visibility === "private" ? "private" : "public";
     const password = typeof body.password === "string" ? body.password.slice(0, 64) : "";
     const gameType = body.game_type;
-    if (!name || !nickname || (gameType !== "dice" && gameType !== "random_pick" && gameType !== "teams" && gameType !== "roulette")) return apiError("INVALID_INPUT", "방 설정을 확인해주세요.");
+    if (!name || !nickname || (gameType !== "dice" && gameType !== "random_pick" && gameType !== "teams" && gameType !== "roulette" && gameType !== "rps")) return apiError("INVALID_INPUT", "방 설정을 확인해주세요.");
     if (visibility === "private" && password.length < 4) return apiError("INVALID_INPUT", "비밀번호는 4자 이상 입력해주세요.");
     for (let attempt = 0; attempt < 5; attempt += 1) {
       const code = randomString(8, CODE_ALPHABET);

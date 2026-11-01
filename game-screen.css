@@ -78,6 +78,60 @@ body.room-active .room-game-title {
 body.room-active .room-game-title--pick { color: #ff6149; }
 body.room-active .room-game-title--team { color: #009e0d; }
 body.room-active .room-game-title img { display: block; }
+body.room-active .room-game-switch {
+  min-width: 0;
+  justify-self: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+body.room-active .room-game-select-frame {
+  --sketch-color: #111;
+  --sketch-width: 1.3;
+  --sketch-fill: #fff;
+  position: relative;
+  isolation: isolate;
+  width: 142px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  border: 1.3px solid #111;
+  border-radius: 5px;
+  background: #fff;
+}
+body.room-active .room-game-select-frame[hidden] { display: none; }
+body.room-active .room-game-select-frame.has-sketch-outline { border-color: transparent; }
+body.room-active .room-game-select-frame > .sketch-outline { z-index: 0; inset: -1.3px; width: calc(100% + 2.6px); height: calc(100% + 2.6px); }
+body.room-active .room-game-select-frame::after {
+  position: absolute;
+  z-index: 2;
+  right: 10px;
+  top: 50%;
+  width: 0;
+  height: 0;
+  border-right: 4px solid transparent;
+  border-left: 4px solid transparent;
+  border-top: 6px solid #111;
+  transform: translateY(-35%);
+  content: "";
+  pointer-events: none;
+}
+body.room-active .room-game-select {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  padding: 0 28px 0 12px;
+  border: 0;
+  outline: 0;
+  color: #111;
+  background: transparent;
+  appearance: none;
+  font: 400 15px/1 "MemomentKkukkukk", sans-serif;
+  cursor: pointer;
+}
+body.room-active .room-game-select:disabled { cursor: wait; opacity: .55; }
 body.room-active .room-identity {
   min-width: 0;
   margin-left: 0;
@@ -311,6 +365,7 @@ body.room-active .chat-message > p > .sketch-outline {
   height: calc(100% + 2.6px);
 }
 body.room-active .chat-message > p > span { position: relative; z-index: 1; }
+body.room-active .chat-message > p > span { white-space: pre-wrap; }
 body.room-active .chat-message > :is(p, .chat-emoji-bubble) + :is(p, .chat-emoji-bubble) { margin-top: 6px; }
 body.room-active .chat-emoji-bubble {
   --sketch-color: #8c91a3;
@@ -369,10 +424,12 @@ body.room-active .chat-input-shell {
   position: relative;
   isolation: isolate;
   min-width: 0;
-  height: 40px;
+  min-height: 40px;
+  height: auto;
+  max-height: 140px;
   padding: 0 6px 0 16px;
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   border: 1px solid #cacddb;
   border-radius: 8px;
   background: #fff;
@@ -385,20 +442,47 @@ body.room-active .chat-input-shell > .sketch-outline {
   height: calc(100% + 2px);
 }
 body.room-active .chat-input-shell > :not(.sketch-outline) { position: relative; z-index: 1; }
-body.room-active .chat-compose input {
+body.room-active .chat-compose :is(input, textarea) {
   min-width: 0;
-  height: 38px;
+  height: 20px;
+  max-height: 120px;
   padding: 0;
   border: 0;
   border-radius: 0;
   background: transparent;
   font-size: 15px;
+  line-height: 20px;
 }
-body.room-active .chat-compose input:focus { outline: 0; }
+body.room-active .chat-compose textarea { width: 100%; resize: none; overflow-y: auto; font-family: inherit; }
+body.room-active .chat-compose :is(input, textarea):focus { outline: 0; }
 body.room-active .chat-input-shell:hover { --sketch-color: #111111; }
 body.room-active .chat-input-shell:focus-within { --sketch-color: #111111; outline: 0; }
 body.room-active .chat-send { width: 32px; height: 32px; flex: none; background: transparent; }
 body.room-active .chat-send img { display: block; }
+body.room-active .chat-new-button {
+  --sketch-color: #111;
+  --sketch-width: 1.2;
+  --sketch-fill: #fff;
+  position: absolute;
+  z-index: 12;
+  top: calc(var(--room-bar-height) + 12px);
+  left: 50%;
+  min-height: 34px;
+  padding: 0 14px;
+  border: 1.2px solid #111;
+  border-radius: 5px;
+  color: #111;
+  background: #fff;
+  box-shadow: 0 5px 14px rgba(17,17,17,.12);
+  font: 400 14px/1 "MemomentKkukkukk", sans-serif;
+  white-space: nowrap;
+  cursor: pointer;
+  transform: translateX(-50%);
+}
+body.room-active .chat-new-button[hidden] { display: none; }
+body.room-active .chat-new-button.has-sketch-outline { border-color: transparent; background: transparent; }
+body.room-active .chat-new-button > .sketch-outline { z-index: -1; inset: -1.2px; width: calc(100% + 2.4px); height: calc(100% + 2.4px); filter: drop-shadow(0 5px 8px rgba(17,17,17,.12)); }
+body.room-active .chat-new-button:hover { --sketch-color: var(--secondary); color: var(--secondary); }
 
 .visually-hidden,
 body.room-active .game-header h1,
@@ -927,6 +1011,9 @@ body.is-finished .dice-panel .player:not(.is-loser) { opacity: .4; }
   body.room-active .room-leave img { width: 20px; height: 20px; }
   body.room-active .room-game-title { font-size: 16px; }
   body.room-active .room-game-title img { max-width: 94px; height: auto; }
+  body.room-active .room-game-switch:has(.room-game-select-frame:not([hidden])) .room-game-title { display: none; }
+  body.room-active .room-game-select-frame { width: min(126px, 34vw); }
+  body.room-active .room-game-select { padding-left: 9px; font-size: 13px; }
   body.room-active .room-identity > div { display: none; }
   body.room-active .room-code-button { font-size: 10px; }
   .game-page, .game-shell { width: calc(100% - 28px); }

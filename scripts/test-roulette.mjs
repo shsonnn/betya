@@ -68,6 +68,8 @@ try {
   assert.deepEqual((await rejoined.next("room.snapshot")).game, first.game);
   host.send("chat.typing", { typing: true });
   assert.equal((await rejoined.next("chat.typing")).typing, true);
+  host.send("chat.send", { text: "첫째 줄\n둘째 줄" });
+  assert.equal((await rejoined.next("chat.message")).text, "첫째 줄\n둘째 줄");
   const invite = await fetch(`${origin}/room/${code}?share=3`);
   assert.equal(invite.status, 200);
   assert.equal(invite.headers.get("cache-control"), "no-store");
@@ -77,6 +79,30 @@ try {
   const reroll = await host.next("game.spun");
   assert.ok(reroll.game.revision > first.game.revision);
   assert.ok(reroll.game.spin.started_at_ms > spin.started_at_ms);
+  host.send("game.switch", { game_type: "random_pick" });
+  assert.equal((await host.next("error")).code, "INVALID_STATE");
+  await new Promise(resolve => setTimeout(resolve, Math.max(0, reroll.game.animation_until_ms - Date.now() + 80)));
+  host.send("game.switch", { game_type: "random_pick" });
+  const switchedHost = await host.next("game.switched"), switchedGuest = await rejoined.next("game.switched");
+  assert.equal(switchedHost.game.type, "random_pick");
+  assert.deepEqual(switchedHost.game, switchedGuest.game);
+  host.send("game.switch", { game_type: "rps" });
+  const rpsHost = await host.next("game.switched"), rpsGuest = await rejoined.next("game.switched");
+  assert.equal(rpsHost.game.type, "rps");
+  assert.deepEqual(new Set(rpsHost.game.rps.active_ids), new Set([created.body.player.player_id, joined.body.player.player_id]));
+  host.send("game.rps.choose", { choice: "rock", round: 1 });
+  const hostChoice = await host.next("game.rps.updated");
+  const guestSawHost = await rejoined.next("game.rps.updated");
+  assert.equal(hostChoice.game.rps.your_choice, "rock");
+  assert.equal(guestSawHost.game.rps.your_choice, undefined);
+  rejoined.send("game.rps.choose", { choice: "scissors", round: 1 });
+  const hostSawGuest = await host.next("game.rps.updated");
+  const guestChoice = await rejoined.next("game.rps.updated");
+  assert.equal(hostSawGuest.game.rps.your_choice, "rock");
+  assert.equal(guestChoice.game.rps.your_choice, "scissors");
+  host.send("game.rps.reveal", { round: 1 });
+  const revealed = await host.next("game.rps.updated");
+  assert.deepEqual(revealed.game.rps.result.loser_ids, [joined.body.player.player_id]);
   // The three established game types must still initialize and accept their CTA.
   for (const [game_type, configure, action] of [
     ["dice", { player_count: 2, names: ["가", "나"] }, "game.roll"],
@@ -92,7 +118,7 @@ try {
     peer.send(action);
     await peer.next({ "game.roll": "game.rolled", "game.draw": "game.drawn", "game.divide": "game.divided" }[action]);
   }
-  console.log("PASS: roulette sync, permissions, bounds, spin lock, reconnect, reroll, typing, invitations, and 3-game regression");
+  console.log("PASS: room game switching, multiline chat, roulette sync/shuffle state, RPS privacy, permissions, reconnect, and established-game regression");
 } finally {
   for (const ws of sockets) ws.close();
   for (const [code, cookie] of memberships.reverse()) await post(`/api/rooms/${code}/leave`, {}, cookie);

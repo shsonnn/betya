@@ -18,6 +18,8 @@ const files = [
   "game-outline.js",
   "theme.css",
   "roulette.js",
+  "rps.css",
+  "rps.js",
 ];
 
 await rm(dist, { recursive: true, force: true });

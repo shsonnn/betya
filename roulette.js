@@ -10,11 +10,13 @@ const spinInProgress = () => Boolean(spinState.spin && spinNow() < spinState.spi
 function updateSpinButton() {
   const button = document.querySelector("[data-spin-wheel]");
   if (button) button.disabled = wheelItems().length < 2 || spinInProgress() || spinState.dirty || spinState.pending;
+  const shuffle = document.querySelector("[data-shuffle-wheel]");
+  if (shuffle) shuffle.disabled = wheelItems().length < 2 || spinInProgress() || spinState.dirty || spinState.pending;
 }
 
 function sendSpinSetup() {
   clearTimeout(spinSetupTimer);
-  if (!inRoom() || isGuest()) return;
+  if (!inRoom() || isGuest() || window.BetyaRoom.state()?.game?.type !== "roulette") return;
   spinState.dirty = true;
   updateSpinButton();
   if (!window.BetyaRoom.send("game.configure", { items: cleanSpinItems() })) {
@@ -30,7 +32,8 @@ function renderSpinGame() {
   const locked = isGuest() || spinInProgress() || spinState.pending;
   const setup = stepperMarkup("항목", spinState.items.length, "개", 2, 24)
     + `<p class="helper">이름을 누르면 바로 수정할 수 있어요.</p><div class="roulette-fields">`
-    + spinState.items.map((value, i) => `<span class="sketch-input-frame"><input class="text-input" type="text" data-roulette-item="${i}" aria-label="룰렛 항목 ${i + 1}" placeholder="이름을 입력하세요" maxlength="40" autocomplete="off" value="${escapeHtml(value)}" ${locked ? "disabled" : ""} /></span>`).join("") + `</div>`;
+    + spinState.items.map((value, i) => `<span class="sketch-input-frame"><input class="text-input" type="text" data-roulette-item="${i}" aria-label="룰렛 항목 ${i + 1}" placeholder="이름을 입력하세요" maxlength="40" autocomplete="off" value="${escapeHtml(value)}" ${locked ? "disabled" : ""} /></span>`).join("") + `</div>`
+    + (isGuest() ? "" : `<button class="mini-button roulette-add-name" data-roulette-add type="button" ${spinState.items.length >= 24 || locked ? "disabled" : ""}><span>이름 추가</span></button>`);
   const action = isGuest() ? "" : `<button class="primary-button" data-spin-wheel type="button"><span>${spinInProgress() || spinState.pending ? "두근두근… 어디서 멈출까요?" : spinState.spin ? "한 번 더 돌려!" : "돌려돌려 돌림판~!"}</span></button>`;
   pageShell("roulette", "돌려돌려", "돌려돌려~ 오늘의 운명을 정해볼까요!", setup, "", action);
   document.querySelectorAll("[data-count-step]").forEach(button => {
@@ -44,6 +47,15 @@ function renderSpinGame() {
       renderSpinGame();
       sendSpinSetup();
     });
+  });
+  document.querySelector("[data-roulette-add]")?.addEventListener("click", () => {
+    if (isGuest() || spinInProgress() || spinState.pending || spinState.items.length >= 24) return;
+    const nextIndex = spinState.items.length;
+    spinState.items.push("");
+    spinState.spin = null;
+    renderSpinGame();
+    sendSpinSetup();
+    document.querySelector(`[data-roulette-item="${nextIndex}"]`)?.focus({ preventScroll: true });
   });
   document.querySelectorAll("[data-roulette-item]").forEach(input => {
     const commit = () => {
@@ -159,7 +171,26 @@ function renderSpinStage() {
     stage.innerHTML = emptyResult("./assets/game/roulette-empty.svg", "돌림판이 비었어요", "항목을 두 개 이상 추가한 뒤 돌려주세요!");
     return;
   }
-  stage.innerHTML = `<div class="wheel-stage"><div class="wheel-frame"><span class="wheel-pointer" aria-hidden="true"></span><canvas role="img" aria-label="${escapeHtml(items.join(', '))} 항목이 있는 돌림판"></canvas><span class="wheel-hub" aria-hidden="true"></span></div><p class="wheel-caption" role="status" aria-live="polite"></p></div>`;
+  stage.innerHTML = `<div class="wheel-stage"><div class="wheel-frame"><span class="wheel-pointer" aria-hidden="true"></span><canvas role="img" aria-label="${escapeHtml(items.join(', '))} 항목이 있는 돌림판"></canvas><span class="wheel-hub" aria-hidden="true"></span></div>${isGuest() ? "" : '<button class="mini-button wheel-shuffle-button" data-shuffle-wheel type="button"><span>순서 섞기</span></button>'}<p class="wheel-caption" role="status" aria-live="polite"></p></div>`;
+  stage.querySelector("[data-shuffle-wheel]")?.addEventListener("click", () => {
+    if (isGuest() || spinInProgress() || spinState.dirty || spinState.pending || wheelItems().length < 2) return;
+    const occupied = spinState.items.map((value, index) => value.trim() ? index : -1).filter(index => index >= 0);
+    const original = occupied.map(index => spinState.items[index]);
+    const shuffled = [...original];
+    for (let index = shuffled.length - 1; index > 0; index -= 1) {
+      const other = secureWheelRandom(index + 1);
+      [shuffled[index], shuffled[other]] = [shuffled[other], shuffled[index]];
+    }
+    if (shuffled.every((value, index) => value === original[index])) {
+      const swap = original.findIndex(value => value !== original[0]);
+      if (swap < 0) return;
+      [shuffled[0], shuffled[swap]] = [shuffled[swap], shuffled[0]];
+    }
+    occupied.forEach((index, position) => { spinState.items[index] = shuffled[position]; });
+    spinState.spin = null;
+    renderSpinGame();
+    sendSpinSetup();
+  });
   const canvas = stage.querySelector("canvas");
   const caption = stage.querySelector(".wheel-caption");
   const pointer = stage.querySelector(".wheel-pointer");
@@ -192,6 +223,8 @@ function renderSpinStage() {
       document.querySelectorAll(".theme-roulette [data-count-step]").forEach(button => {
         button.disabled = isGuest() || (Number(button.dataset.countStep) < 0 ? spinState.items.length <= 2 : spinState.items.length >= 24);
       });
+      const add = document.querySelector("[data-roulette-add]");
+      if (add) add.disabled = isGuest() || spinState.items.length >= 24;
       const label = document.querySelector("[data-spin-wheel] > span");
       if (label) label.textContent = "한 번 더 돌려!";
       updateSpinButton();
@@ -203,4 +236,14 @@ function renderSpinStage() {
 document.addEventListener("betya-game-error", () => {
   spinState.pending = false;
   if (document.querySelector(".theme-roulette")) renderSpinGame();
+});
+document.addEventListener("betya-game", event => {
+  if (event.detail?.payload?.game?.type === "roulette") return;
+  clearTimeout(spinSetupTimer);
+  cancelAnimationFrame(spinFrame);
+  spinState.revision = -1;
+  spinState.dirty = false;
+  spinState.pending = false;
+  spinState.spin = null;
+  spinState.items = ["", ""];
 });
