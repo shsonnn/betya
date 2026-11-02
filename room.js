@@ -7,11 +7,12 @@
     team: "/index.html#team",
     roulette: "/index.html#roulette",
     rps: "/index.html#rps",
+    bomb: "/index.html#bomb",
   };
   // Frontend route keys <-> backend game_type values.
-  const GAME_TYPE_TO_API = { dice: "dice", pick: "random_pick", team: "teams", roulette: "roulette", rps: "rps" };
-  const API_TO_GAME_TYPE = { dice: "dice", random_pick: "pick", teams: "team", roulette: "roulette", rps: "rps" };
-  const GAME_NAMES = { dice: "0의 주사위", pick: "아무나 걸려라", team: "팀 나누기", roulette: "돌려돌려", rps: "가위바위보" };
+  const GAME_TYPE_TO_API = { dice: "dice", pick: "random_pick", team: "teams", roulette: "roulette", rps: "rps", bomb: "bomb" };
+  const API_TO_GAME_TYPE = { dice: "dice", random_pick: "pick", teams: "team", roulette: "roulette", rps: "rps", bomb: "bomb" };
+  const GAME_NAMES = { dice: "0의 주사위", pick: "아무나 걸려라", team: "팀 나누기", roulette: "돌려돌려", rps: "가위바위보", bomb: "폭탄 돌리기" };
   const EMOJIS = [
     ["shotgun", "샷건"], ["not-me", "나만 아니면 돼"], ["winner", "이겨서 기분 좋음"],
     ["despair", "절망"], ["drool", "군침이 싹"], ["minus-100m", "-1억"],
@@ -209,7 +210,7 @@
     }, { once: true });
     dialog.querySelector(".room-dialog-close").addEventListener("click", () => dialog.close());
     dialog.querySelector("[data-solo]").addEventListener("click", () => {
-      if (gameType === "rps") return;
+      if (gameType === "rps" || gameType === "bomb") return;
       window.location.assign(gameType === "dice" ? "/dice?solo=1" : `/?solo=1#${gameType}`);
     });
     dialog.addEventListener("click", (event) => {
@@ -863,6 +864,7 @@
 
   const inviteCode = inviteCodeFromUrl();
   if (!inviteCode && new URLSearchParams(location.search).get("solo") === "1") {
+    if (location.hash === "#bomb") { window.location.replace("/index.html"); return; }
     mountSoloChrome();
     return;
   }

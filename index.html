@@ -24,6 +24,7 @@
     <link rel="prefetch" href="./dice.css?v=20261025-memoment-1" as="style" />
     <link rel="prefetch" href="./dice.js?v=20261027-guest-cta-1" as="script" />
     <link rel="stylesheet" href="./theme.css?v=20261101-room-tools" />
+    <link rel="stylesheet" href="./bomb.css?v=20261102-bomb-circle-2" />
     <link rel="stylesheet" href="./rps.css?v=20261101-result-view" />
   </head>
   <body>
@@ -83,14 +84,19 @@
             <span class="card-copy"><strong>가위바위보</strong><span>아 안 내면 진거~</span></span>
             <span class="card-art card-art--rps" aria-hidden="true"><span class="art-canvas"><img src="./assets/rps/catalog.svg" alt="" /></span></span>
           </button>
+          <button class="game-card game-card--bomb" type="button" data-route="bomb">
+            <span class="card-copy"><strong>폭탄 돌리기</strong><span>나한테서 터지면 안 돼!</span></span>
+            <span class="card-art card-art--bomb" aria-hidden="true"><span class="art-canvas"><img src="./assets/home/catalog-bomb.svg" alt="" /></span></span>
+          </button>
         </div>
       </section>
     </template>
 
-    <script src="./room.js?v=20261101-room-tools"></script>
+    <script src="./room.js?v=20261102-bomb-1"></script>
     <script src="./roulette.js?v=20261101-room-tools"></script>
     <script src="./rps.js?v=20261101-result-view"></script>
-    <script src="./app.js?v=20261101-room-tools"></script>
+    <script src="./bomb.js?v=20261102-bomb-circle-2"></script>
+    <script src="./app.js?v=20261102-bomb-1"></script>
     <script src="./game-outline.js?v=20261101-room-tools"></script>
   </body>
 </html>
