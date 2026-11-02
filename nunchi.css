@@ -1,0 +1,47 @@
+
+.theme-nunchi .settings-panel { padding: 20px; }
+.nunchi-member-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 20px; font-size: 20px; }
+.nunchi-member-heading strong { color: var(--secondary); font-size: 24px; font-weight: 400; }
+.nunchi-members { display: flex; flex-direction: column; gap: 12px; }
+.nunchi-member { display: flex; justify-content: space-between; align-items: center; gap: 12px; font-size: 18px; line-height: 1.35; color: #5b5e6e; }
+.nunchi-member > span:first-child { min-width: 0; overflow-wrap: anywhere; }
+.nunchi-member > span:last-child { flex: none; font-size: 15px; color: #7f8394; }
+.nunchi-member small { font-size: 12px; color: var(--secondary); }
+.nunchi-member.is-loser, .nunchi-member.is-loser > span:last-child { color: #d74335; }
+.nunchi-rules { margin-top: 24px; color: #7f8394; font-size: 15px; line-height: 1.6; }
+.nunchi-rules summary { cursor: pointer; color: #111; }
+.nunchi-rules p { margin: 8px 0 0; }
+.theme-nunchi .result-stage-wrap { padding: 12px; justify-content: center; overflow-y: auto; overscroll-behavior: contain; }
+.nunchi-play, .nunchi-result, .nunchi-waiting { width: 100%; min-height: 0; display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center; }
+.nunchi-play h2, .nunchi-result h2, .nunchi-waiting h2 { margin: 0; font-size: clamp(24px, 3vw, 36px); font-weight: 400; overflow-wrap: anywhere; }
+.nunchi-waiting > img { width: min(200px, 38%); }
+.nunchi-waiting > span, .nunchi-result > span:last-child { font-size: 15px; color: #7f8394; }
+.nunchi-kicker { color: #7f8394; font-size: 18px; }
+.nunchi-caption, .nunchi-waiting p, .nunchi-result p { margin: 0; font-size: 18px; line-height: 1.4; color: #5b5e6e; text-align: center; }
+.nunchi-result > strong { font-size: clamp(26px, 4vw, 44px); font-weight: 400; color: #d74335; overflow-wrap: anywhere; }
+.room-dialog[data-game="nunchi"] .solo-button { display: none; }
+.room-dialog[data-game="nunchi"] .room-dialog-actions { grid-template-columns: minmax(0, 1fr); }
+.room-dialog[data-game="nunchi"] .lobby-submit { grid-column: 1 / -1; }
+body[data-route="home"] .card-art--nunchi img { left: 0; top: 0; width: 345px; height: 345px; }
+@media (max-width: 900px) {
+  body.room-active .theme-nunchi .workspace { grid-template-rows: minmax(0, 34fr) minmax(0, 66fr); }
+  .theme-nunchi .settings-panel { padding: 12px 16px; }
+  .nunchi-member-heading { font-size: 17px; margin-bottom: 12px; }
+  .nunchi-member { font-size: 16px; }
+  .nunchi-members { gap: 8px; }
+  .nunchi-rules { margin-top: 12px; font-size: 14px; }
+  .nunchi-play, .nunchi-result, .nunchi-waiting { gap: 8px; }
+  .nunchi-kicker, .nunchi-caption, .nunchi-waiting p, .nunchi-result p { font-size: 16px; }
+  .nunchi-waiting > img { width: min(130px, 30%); }
+  .nunchi-waiting > span, .nunchi-result > span:last-child { font-size: 13px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .theme-nunchi *, .theme-nunchi *::before, .theme-nunchi *::after { animation: none !important; transition: none !important; }
+}
+.nunchi-tap { display: grid; place-items: center; width: clamp(100px, 23svh, 230px); aspect-ratio: 1; padding: 0; border: 3px solid #111; border-radius: 48% 52% 50% 47%; background: #fff; color: #111; font: inherit; font-size: clamp(64px, 14svh, 144px); line-height: 1; box-shadow: 4px 5px 0 #111; cursor: pointer; touch-action: manipulation; transition: transform .1s, box-shadow .1s; }
+.nunchi-tap:not(:disabled):hover { color: var(--secondary); border-color: var(--secondary); }
+.nunchi-tap:not(:disabled):active { transform: translate(3px, 4px); box-shadow: 1px 1px 0 #111; }
+.nunchi-tap:focus-visible { outline: 3px solid var(--secondary); outline-offset: 8px; }
+.nunchi-tap:disabled { cursor: default; color: #7f8394; box-shadow: 1px 2px 0 #a6a9ba; border-color: #a6a9ba; }
+.nunchi-time { color: #7f8394; font-size: 14px; }
+@media (max-width: 900px) { .nunchi-tap { width: clamp(90px, 19svh, 180px); font-size: clamp(60px, 12svh, 110px); } }

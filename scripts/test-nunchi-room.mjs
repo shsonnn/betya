@@ -1,0 +1,63 @@
+import assert from "node:assert/strict";
+import { roomTestClient } from "./room-test-client.mjs";
+const client = roomTestClient(process.env.BETYA_TEST_ORIGIN || "http://127.0.0.1:4186");
+const { create, join, connect } = client;
+try {
+  const created = await create("nunchi"), code = created.body.room.code;
+  let host = connect(code, created.cookie);
+  await host.next("room.snapshot");
+  host.send("game.nunchi.start", { round: 0 });
+  assert.equal((await host.next("error")).code, "INVALID_STATE");
+  const second = await join(code, "둘째"), third = await join(code, "셋째");
+  const guest = connect(code, second.cookie), other = connect(code, third.cookie);
+  await guest.next("room.snapshot"); await other.next("room.snapshot");
+  guest.send("game.nunchi.start", { round: 0 });
+  assert.equal((await guest.next("error")).code, "FORBIDDEN");
+  host.send("game.nunchi.start", { round: 0 });
+  const countdown = await host.next("game.updated", p => p.game.nunchi.phase === "countdown");
+  assert.equal(countdown.game.nunchi.participant_ids.length, 3);
+  assert.equal("pending" in countdown.game.nunchi, false);
+  host.send("game.nunchi.tap", { round: 1, number: 1 });
+  assert.equal((await host.next("error")).code, "INVALID_STATE");
+  host.send("game.switch", { game_type: "roulette" });
+  assert.equal((await host.next("error")).code, "INVALID_STATE");
+  await host.next("game.updated", p => p.game.nunchi.phase === "playing");
+  const lateJoined = await join(code, "늦게 온 친구"), late = connect(code, lateJoined.cookie);
+  assert.equal((await late.next("room.snapshot")).game.nunchi.participant_ids.includes(lateJoined.body.player.player_id), false);
+  late.send("game.nunchi.tap", { round: 1, number: 1 });
+  assert.equal((await late.next("error")).code, "INVALID_STATE");
+  host.send("game.nunchi.tap", { round: 1, number: 1 });
+  guest.send("game.nunchi.tap", { round: 1, number: 1 });
+  const collision = await host.next("game.updated", p => p.game.nunchi.phase === "finished");
+  assert.equal(collision.game.nunchi.result.reason, "collision");
+  assert.deepEqual(new Set(collision.game.nunchi.result.loser_ids), new Set([created.body.player.player_id, second.body.player.player_id]));
+  assert.deepEqual((await other.next("game.updated", p => p.game.nunchi.phase === "finished")).game, collision.game);
+  host.send("game.nunchi.start", { round: 1 });
+  await host.next("game.updated", p => p.game.nunchi.round === 2 && p.game.nunchi.phase === "countdown");
+  // Replacement sockets preserve the active round and receive the authoritative snapshot.
+  host = connect(code, created.cookie);
+  assert.equal((await host.next("room.snapshot")).game.nunchi.round, 2);
+  await host.next("game.updated", p => p.game.nunchi.round === 2 && p.game.nunchi.phase === "playing");
+  host.send("game.nunchi.tap", { round: 1, number: 1 });
+  assert.equal((await host.next("error")).code, "INVALID_STATE");
+  for (const [peer, number] of [[host, 1], [guest, 2], [other, 3]]) {
+    peer.send("game.nunchi.tap", { round: 2, number });
+    await host.next("game.updated", p => p.game.nunchi.claims.length === number);
+  }
+  const last = await late.next("game.updated", p => p.game.nunchi.round === 2 && p.game.nunchi.phase === "finished");
+  assert.equal(last.game.nunchi.result.reason, "last");
+  assert.deepEqual(last.game.nunchi.result.loser_ids, [lateJoined.body.player.player_id]);
+  host.send("game.nunchi.start", { round: 2 });
+  await host.next("game.updated", p => p.game.nunchi.round === 3 && p.game.nunchi.phase === "countdown");
+  guest.ws.close();
+  const cancelled = await host.next("game.updated", p => p.game.nunchi.round === 3 && p.game.nunchi.phase === "finished");
+  assert.equal(cancelled.game.nunchi.result.reason, "cancelled");
+  host.send("game.nunchi.start", { round: 3 });
+  const fourth = await host.next("game.updated", p => p.game.nunchi.round === 4 && p.game.nunchi.phase === "countdown");
+  assert.equal(fourth.game.nunchi.participant_ids.length, 3);
+  const timeout = await host.next("game.updated", p => p.game.nunchi.round === 4 && p.game.nunchi.phase === "finished", 22_000);
+  assert.equal(timeout.game.nunchi.result.reason, "timeout");
+  host.send("game.switch", { game_type: "rps" });
+  assert.equal((await host.next("game.switched")).game.type, "rps");
+  console.log("PASS: nunchi permissions, live collision, late join, reconnect, one tap per player, last player, disconnect, automatic timeout, and game switching");
+} finally { await client.close(); }

@@ -112,6 +112,7 @@ function renderRoute() {
   document.body.dataset.route = route;
   if (route === "pick") renderPick();
   else if (route === "team") renderTeam();
+  else if (route === "nunchi") renderNunchiGame();
   else if (route === "rps") renderRpsGame();
   else if (route === "roulette") renderSpinGame();
   else if (route === "dice") renderDice();
@@ -383,6 +384,7 @@ function applyRoomGame(detail) {
     teamDirty = false;
     remoteAnimationId += 1;
   }
+  if (game?.type === "nunchi") { applyNunchiGame(detail); return; }
   if (game?.type === "rps") { applyRpsGame(detail); return; }
   if (game?.type === "roulette") { applySpinGame(detail); return; }
   if (!inRoom() || !game || game.revision < remoteGameRevision) return;

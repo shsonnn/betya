@@ -5,6 +5,7 @@
 - **0의 주사위**: 참가자별로 주사위 두 개를 굴리고 합의 끝자리가 가장 낮은 사람을 찾습니다.
 - **아무나 걸려라**: 항목을 추가하고 원하는 수만큼 무작위로 뽑습니다.
 - **팀 나누기**: 참가자와 팀 수를 입력하고, 같은 팀이 되면 안 되는 조합을 피해 팀을 나눕니다.
+- **눈치게임**: 각자 한 번씩 눌러 숫자를 이어갑니다. 0.3초 안에 겹치거나 마지막까지 남으면 패배합니다.
 
 ## 방과 채팅
 
@@ -36,9 +37,19 @@ pnpm run dev
 검증과 배포 명령:
 
 ```bash
+pnpm exec wrangler types
+pnpm run test:nunchi
 pnpm run typecheck
 pnpm run build
 pnpm run deploy
+```
+
+멀티플레이 통합 테스트는 별도 터미널에서 로컬 서버를 실행한 뒤 사용합니다. 테스트는 localhost 주소만 허용합니다.
+
+```bash
+pnpm exec wrangler dev --local --port 4186
+# 서버 실행 후 다른 터미널에서:
+BETYA_TEST_ORIGIN=http://127.0.0.1:4186 pnpm run test:nunchi:room
 ```
 
 ## 라이선스

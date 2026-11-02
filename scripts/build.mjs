@@ -20,6 +20,8 @@ const files = [
   "roulette.js",
   "rps.css",
   "rps.js",
+  "nunchi.css",
+  "nunchi.js",
 ];
 
 await rm(dist, { recursive: true, force: true });

@@ -1,6 +1,8 @@
 import { DurableObject } from "cloudflare:workers";
 
-type GameType = "dice" | "random_pick" | "teams" | "roulette" | "rps";
+import { newNunchi, startNunchi, advanceNunchi, tapNunchi, cancelNunchi, nunchiAlarm, publicNunchi, type NunchiState } from "./nunchi";
+
+type GameType = "dice" | "random_pick" | "teams" | "roulette" | "rps" | "nunchi";
 type PlayerStatus = "pending" | "connected" | "disconnected";
 type RpsChoice = "scissors" | "rock" | "paper";
 
@@ -53,6 +55,7 @@ interface GameState {
   animation_until_ms?: number;
   spin?: { winner_index: number; turns: number; started_at_ms: number; duration_ms: number } | null;
   rps?: RpsRound;
+  nunchi?: NunchiState;
 }
 
 interface RoomState {
@@ -151,6 +154,7 @@ function gameFor(type: GameType): GameState {
   if (type === "roulette") return {
     type, revision: 0, status: "idle", items: ["", ""], spin: null,
   };
+  if (type === "nunchi") return { type, revision: 0, status: "idle", nunchi: newNunchi() };
   if (type === "rps") return {
     type, revision: 0, status: "idle",
     rps: { round: 1, phase: "choosing", active_ids: [], choices: {}, selected_ids: [], result: null, final_loser_id: null },
@@ -160,7 +164,8 @@ function gameFor(type: GameType): GameState {
   };
 }
 
-function publicGame(game: GameState, playerId: string): GameState {
+function publicGame(game: GameState, playerId: string) {
+  if (game.type === "nunchi" && game.nunchi) return { ...game, nunchi: publicNunchi(game.nunchi, playerId) };
   if (game.type !== "rps" || !game.rps) return game;
   const copy = structuredClone(game);
   if (!copy.rps) return copy;
@@ -269,7 +274,24 @@ export class GameRoom extends DurableObject<Env> {
 
   private async scheduleAlarm(state: RoomState): Promise<void> {
     const deadlines = state.players.flatMap((player) => player.reconnect_deadline_ms ? [player.reconnect_deadline_ms] : []);
+    const gameDeadline = state.game.nunchi ? nunchiAlarm(state.game.nunchi) : null;
+    if (gameDeadline !== null) deadlines.push(gameDeadline);
     await this.ctx.storage.setAlarm(Math.min(state.expires_at_ms, ...deadlines));
+  }
+
+  private advanceTimedGame(state: RoomState): boolean {
+    const round = state.game.nunchi;
+    if (!round || !advanceNunchi(round, Date.now())) return false;
+    state.game.status = round.phase === "finished" ? "complete" : "in_progress";
+    state.game.revision += 1;
+    return true;
+  }
+
+  private removeTimedPlayers(state: RoomState, playerIds: string[]): void {
+    const round = state.game.nunchi;
+    if (!round || !cancelNunchi(round, playerIds)) return;
+    state.game.status = round.phase === "finished" ? "complete" : "in_progress";
+    state.game.revision += 1;
   }
 
   private async player(state: RoomState, token: string): Promise<Player | null> {
@@ -326,7 +348,7 @@ export class GameRoom extends DurableObject<Env> {
     await this.write(state);
     await this.scheduleAlarm(state);
     this.broadcast("player.joined", { player: publicPlayer(player) });
-    if (state.game.type === "rps") this.broadcastGame("game.updated", state);
+    if (state.game.type === "rps" || state.game.type === "nunchi") this.broadcastGame("game.updated", state);
     return { token, room: publicRoom(state, origin), player: publicPlayer(player) };
   }
 
@@ -336,6 +358,8 @@ export class GameRoom extends DurableObject<Env> {
     const player = await this.player(state, token);
     if (!player) return false;
     state.players = state.players.filter((candidate) => candidate.player_id !== player.player_id);
+    this.advanceTimedGame(state);
+    this.removeTimedPlayers(state, [player.player_id]);
     if (state.game.type === "rps" && state.game.rps) {
       state.game.rps.active_ids = state.game.rps.active_ids.filter((id) => id !== player.player_id);
       delete state.game.rps.choices[player.player_id];
@@ -357,7 +381,7 @@ export class GameRoom extends DurableObject<Env> {
     }
     await this.write(state);
     await this.scheduleAlarm(state);
-    if (state.game.type === "rps") this.broadcastGame("game.updated", state);
+    if (state.game.type === "rps" || state.game.type === "nunchi") this.broadcastGame("game.updated", state);
     return true;
   }
 
@@ -369,6 +393,11 @@ export class GameRoom extends DurableObject<Env> {
     if (!state) return apiError("ROOM_NOT_FOUND", "방을 찾을 수 없어요.", 404);
     const player = await this.player(state, tokenFromCookie(request, state.code));
     if (!player) return apiError("INVALID_SESSION", "다시 입장해주세요.", 401);
+    if (this.advanceTimedGame(state)) {
+      await this.write(state);
+      await this.scheduleAlarm(state);
+      this.broadcastGame("game.updated", state);
+    }
     for (const socket of this.ctx.getWebSockets()) {
       if ((socket.deserializeAttachment() as SocketAttachment | null)?.player_id === player.player_id) socket.close(4001, "replaced");
     }
@@ -435,17 +464,25 @@ export class GameRoom extends DurableObject<Env> {
       return;
     }
     if (typeof envelope.type !== "string" || !envelope.type.startsWith("game.")) return;
-    const isPrivateRpsChoice = envelope.type === "game.rps.choose";
-    if (!isPrivateRpsChoice && !player.is_host) return this.sendError(socket, "FORBIDDEN", "방장만 게임을 진행할 수 있어요.");
+    if (this.advanceTimedGame(state)) {
+      await this.write(state);
+      await this.scheduleAlarm(state);
+      this.broadcastGame("game.updated", state);
+    }
+    const isParticipantAction = envelope.type === "game.rps.choose" || envelope.type === "game.nunchi.tap";
+    if (!isParticipantAction && !player.is_host) return this.sendError(socket, "FORBIDDEN", "방장만 게임을 진행할 수 있어요.");
     const error = this.applyGame(state, envelope.type, payload, player.player_id);
     if (error) return this.sendError(socket, error[0], error[1]);
     await this.write(state);
+    await this.scheduleAlarm(state);
+    // Keep the collision window private until the server resolves it.
+    if (envelope.type === "game.nunchi.tap") return;
     const events: Record<string, string> = {
       "game.configure": "game.updated", "game.roll": "game.rolled",
       "game.draw": "game.drawn", "game.divide": "game.divided", "game.spin": "game.spun",
       "game.switch": "game.switched", "game.rps.choose": "game.rps.updated",
       "game.rps.reveal": "game.rps.updated", "game.rps.next": "game.rps.updated",
-      "game.reset": "game.updated",
+      "game.reset": "game.updated", "game.nunchi.start": "game.updated",
     };
     this.broadcastGame(events[envelope.type], state);
   }
@@ -469,11 +506,13 @@ export class GameRoom extends DurableObject<Env> {
     if (!state || !player) return;
     // A replacement socket may already have connected for this player.
     if (this.ctx.getWebSockets().some((other) => other !== socket && (other.deserializeAttachment() as SocketAttachment | null)?.player_id === playerId)) return;
+    this.removeTimedPlayers(state, [player.player_id]);
     player.status = "disconnected";
     player.reconnect_deadline_ms = Date.now() + RECONNECT_MS;
     await this.write(state);
     await this.scheduleAlarm(state);
     this.broadcast("player.updated", { player: publicPlayer(player) }, socket);
+    if (state.game.type === "nunchi") this.broadcastGame("game.updated", state);
   }
 
   async webSocketError(socket: WebSocket): Promise<void> {
@@ -489,9 +528,14 @@ export class GameRoom extends DurableObject<Env> {
       await this.ctx.storage.deleteAll();
       return;
     }
+    if (this.advanceTimedGame(state)) {
+      await this.write(state);
+      this.broadcastGame("game.updated", state);
+    }
     const expired = state.players.filter((player) => player.status !== "connected" && (player.reconnect_deadline_ms || Infinity) <= Date.now());
     if (expired.length) {
       state.players = state.players.filter((player) => !expired.includes(player));
+      this.removeTimedPlayers(state, expired.map(player => player.player_id));
       if (state.game.type === "rps" && state.game.rps) {
         const expiredIds = new Set(expired.map((player) => player.player_id));
         state.game.rps.active_ids = state.game.rps.active_ids.filter((id) => !expiredIds.has(id));
@@ -510,7 +554,7 @@ export class GameRoom extends DurableObject<Env> {
         this.broadcast("host.changed", { host_player_id: next.player_id, nickname: next.nickname });
       }
       await this.write(state);
-      if (state.game.type === "rps") this.broadcastGame("game.updated", state);
+      if (state.game.type === "rps" || state.game.type === "nunchi") this.broadcastGame("game.updated", state);
     }
     await this.scheduleAlarm(state);
   }
@@ -518,17 +562,33 @@ export class GameRoom extends DurableObject<Env> {
   private applyGame(state: RoomState, type: string, payload: Record<string, unknown>, playerId: string): [string, string] | null {
     if (type === "game.switch") {
       const next = payload.game_type;
-      if (next !== "dice" && next !== "random_pick" && next !== "teams" && next !== "roulette" && next !== "rps") return ["INVALID_INPUT", "지원하지 않는 게임이에요."];
+      if (next !== "dice" && next !== "random_pick" && next !== "teams" && next !== "roulette" && next !== "rps" && next !== "nunchi") return ["INVALID_INPUT", "지원하지 않는 게임이에요."];
+      if (state.game.nunchi && ["countdown", "playing"].includes(state.game.nunchi.phase)) return ["INVALID_STATE", "이번 라운드가 끝난 뒤 게임을 바꿔주세요."];
       if ((state.game.animation_until_ms || 0) > Date.now()) return ["INVALID_STATE", "진행 중인 결과가 끝난 뒤 게임을 바꿔주세요."];
       if (next === state.game.type) return null;
       const revision = state.game.revision + 1;
       state.game_type = next;
       state.game = gameFor(next);
       state.game.revision = revision;
+      if (next === "nunchi") state.game.nunchi = newNunchi(revision);
       if (next === "rps") resetRps(state.game, state.players.map((player) => player.player_id));
       return null;
     }
     const game = state.game;
+    if (game.type === "nunchi" && game.nunchi && type.startsWith("game.nunchi.")) {
+      if (type === "game.nunchi.start") {
+        if (!["waiting", "finished"].includes(game.nunchi.phase) || payload.round !== game.nunchi.round) return ["INVALID_STATE", "현재 라운드가 끝난 뒤 다시 시작해주세요."];
+        const connected = state.players.filter(player => player.status === "connected");
+        if (connected.length < 2) return ["INVALID_STATE", "접속 중인 참가자가 두 명 이상 필요해요."];
+        game.nunchi = startNunchi(game.nunchi, connected, Date.now());
+      } else if (type === "game.nunchi.tap") {
+        const error = tapNunchi(game.nunchi, playerId, payload.round, payload.number, Date.now());
+        if (error) return ["INVALID_STATE", error];
+      } else return ["INVALID_INPUT", "지원하지 않는 게임 동작이에요."];
+      game.status = "in_progress";
+      game.revision += 1;
+      return null;
+    }
     if (type === "game.configure") {
       if (game.animation_until_ms && game.animation_until_ms > Date.now()) return ["INVALID_STATE", "결과 발표가 끝난 뒤 변경해주세요."];
       if (game.type === "dice") {
@@ -560,6 +620,7 @@ export class GameRoom extends DurableObject<Env> {
       } else return ["INVALID_INPUT", "이 게임에서는 설정을 바꿀 수 없어요."];
       game.animation_until_ms = undefined;
     } else if (type === "game.reset") {
+      if (game.nunchi && ["countdown", "playing"].includes(game.nunchi.phase)) return ["INVALID_STATE", "이번 라운드가 끝난 뒤 다시 시작해주세요."];
       if (game.type === "roulette" && (game.animation_until_ms || 0) > Date.now()) return ["INVALID_STATE", "돌림판이 멈춘 뒤 변경해주세요."];
       if (game.type === "dice") {
         game.rolls = Array(game.player_count || 6).fill(null);
@@ -567,6 +628,7 @@ export class GameRoom extends DurableObject<Env> {
       } else if (game.type === "roulette") game.spin = null;
       else if (game.type === "random_pick") game.winners = [];
       else if (game.type === "rps") resetRps(game, state.players.map((player) => player.player_id));
+      else if (game.type === "nunchi") game.nunchi = newNunchi(game.nunchi?.round);
       else game.teams = [];
       game.status = "idle"; game.animation_until_ms = undefined;
     } else if (type === "game.roll" && game.type === "dice") {
@@ -679,7 +741,7 @@ async function handleApi(request: Request, env: Env): Promise<Response> {
     const visibility = body.visibility === "private" ? "private" : "public";
     const password = typeof body.password === "string" ? body.password.slice(0, 64) : "";
     const gameType = body.game_type;
-    if (!name || !nickname || (gameType !== "dice" && gameType !== "random_pick" && gameType !== "teams" && gameType !== "roulette" && gameType !== "rps")) return apiError("INVALID_INPUT", "방 설정을 확인해주세요.");
+    if (!name || !nickname || (gameType !== "dice" && gameType !== "random_pick" && gameType !== "teams" && gameType !== "roulette" && gameType !== "rps" && gameType !== "nunchi")) return apiError("INVALID_INPUT", "방 설정을 확인해주세요.");
     if (visibility === "private" && password.length < 4) return apiError("INVALID_INPUT", "비밀번호는 4자 이상 입력해주세요.");
     for (let attempt = 0; attempt < 5; attempt += 1) {
       const code = randomString(8, CODE_ALPHABET);
