@@ -7,12 +7,13 @@
     team: "/index.html#team",
     roulette: "/index.html#roulette",
     rps: "/index.html#rps",
+    bomb: "/index.html#bomb",
     nunchi: "/index.html#nunchi",
   };
   // Frontend route keys <-> backend game_type values.
-  const GAME_TYPE_TO_API = { dice: "dice", pick: "random_pick", team: "teams", roulette: "roulette", rps: "rps", nunchi: "nunchi" };
-  const API_TO_GAME_TYPE = { dice: "dice", random_pick: "pick", teams: "team", roulette: "roulette", rps: "rps", nunchi: "nunchi" };
-  const GAME_NAMES = { dice: "0의 주사위", pick: "아무나 걸려라", team: "팀 나누기", roulette: "돌려돌려", rps: "가위바위보", nunchi: "눈치게임" };
+  const GAME_TYPE_TO_API = { dice: "dice", pick: "random_pick", team: "teams", roulette: "roulette", rps: "rps", bomb: "bomb", nunchi: "nunchi" };
+  const API_TO_GAME_TYPE = { dice: "dice", random_pick: "pick", teams: "team", roulette: "roulette", rps: "rps", bomb: "bomb", nunchi: "nunchi" };
+  const GAME_NAMES = { dice: "0의 주사위", pick: "아무나 걸려라", team: "팀 나누기", roulette: "돌려돌려", rps: "가위바위보", bomb: "폭탄 돌리기", nunchi: "눈치게임" };
   const EMOJIS = [
     ["shotgun", "샷건"], ["not-me", "나만 아니면 돼"], ["winner", "이겨서 기분 좋음"],
     ["despair", "절망"], ["drool", "군침이 싹"], ["minus-100m", "-1억"],
@@ -210,7 +211,7 @@
     }, { once: true });
     dialog.querySelector(".room-dialog-close").addEventListener("click", () => dialog.close());
     dialog.querySelector("[data-solo]").addEventListener("click", () => {
-      if (gameType === "rps" || gameType === "nunchi") return;
+      if (gameType === "rps" || gameType === "bomb" || gameType === "nunchi") return;
       window.location.assign(gameType === "dice" ? "/dice?solo=1" : `/?solo=1#${gameType}`);
     });
     dialog.addEventListener("click", (event) => {
@@ -864,7 +865,7 @@
 
   const inviteCode = inviteCodeFromUrl();
   if (!inviteCode && new URLSearchParams(location.search).get("solo") === "1") {
-    if (location.hash === "#nunchi") { window.location.replace("/index.html"); return; }
+    if (["#bomb", "#nunchi"].includes(location.hash)) { window.location.replace("/index.html"); return; }
     mountSoloChrome();
     return;
   }

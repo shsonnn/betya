@@ -5,6 +5,7 @@
 - **0의 주사위**: 참가자별로 주사위 두 개를 굴리고 합의 끝자리가 가장 낮은 사람을 찾습니다.
 - **아무나 걸려라**: 항목을 추가하고 원하는 수만큼 무작위로 뽑습니다.
 - **팀 나누기**: 참가자와 팀 수를 입력하고, 같은 팀이 되면 안 되는 조합을 피해 팀을 나눕니다.
+- **폭탄 돌리기**: 원으로 둘러앉은 참가자를 눌러 폭탄을 던집니다. 모두의 화면에서 폭탄이 이동하고, 패배한 참가자에게 폭발 효과가 나타납니다. 숨겨진 제한 시간이 끝날 때 폭탄을 가진 사람이 패배합니다.
 - **눈치게임**: 각자 한 번씩 눌러 숫자를 이어갑니다. 0.3초 안에 겹치거나 마지막까지 남으면 패배합니다.
 
 ## 방과 채팅
@@ -38,6 +39,7 @@ pnpm run dev
 
 ```bash
 pnpm exec wrangler types
+pnpm run test:bomb
 pnpm run test:nunchi
 pnpm run typecheck
 pnpm run build
@@ -47,9 +49,10 @@ pnpm run deploy
 멀티플레이 통합 테스트는 별도 터미널에서 로컬 서버를 실행한 뒤 사용합니다. 테스트는 localhost 주소만 허용합니다.
 
 ```bash
-pnpm exec wrangler dev --local --port 4186
+pnpm exec wrangler dev --local --port 4187
 # 서버 실행 후 다른 터미널에서:
-BETYA_TEST_ORIGIN=http://127.0.0.1:4186 pnpm run test:nunchi:room
+BETYA_TEST_ORIGIN=http://127.0.0.1:4187 pnpm run test:bomb:room
+BETYA_TEST_ORIGIN=http://127.0.0.1:4187 pnpm run test:nunchi:room
 ```
 
 ## 라이선스

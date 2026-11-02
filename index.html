@@ -25,6 +25,7 @@
     <link rel="prefetch" href="./dice.js?v=20261027-guest-cta-1" as="script" />
     <link rel="stylesheet" href="./theme.css?v=20261101-room-tools" />
     <link rel="stylesheet" href="./nunchi.css?v=20261102-nunchi-1" />
+    <link rel="stylesheet" href="./bomb.css?v=20261102-bomb-circle-2" />
     <link rel="stylesheet" href="./rps.css?v=20261101-result-view" />
   </head>
   <body>
@@ -84,6 +85,10 @@
             <span class="card-copy"><strong>가위바위보</strong><span>아 안 내면 진거~</span></span>
             <span class="card-art card-art--rps" aria-hidden="true"><span class="art-canvas"><img src="./assets/rps/catalog.svg" alt="" /></span></span>
           </button>
+          <button class="game-card game-card--bomb" type="button" data-route="bomb">
+            <span class="card-copy"><strong>폭탄 돌리기</strong><span>나한테서 터지면 안 돼!</span></span>
+            <span class="card-art card-art--bomb" aria-hidden="true"><span class="art-canvas"><img src="./assets/home/catalog-bomb.svg" alt="" /></span></span>
+          </button>
           <button class="game-card game-card--nunchi" type="button" data-route="nunchi">
             <span class="card-copy"><strong>눈치게임</strong><span>겹치면 걸린다! 눈치껏 눌러~</span></span>
             <span class="card-art card-art--nunchi" aria-hidden="true"><span class="art-canvas"><img src="./assets/home/catalog-nunchi.svg" alt="" /></span></span>
@@ -92,11 +97,12 @@
       </section>
     </template>
 
-    <script src="./room.js?v=20261102-nunchi-1"></script>
+    <script src="./room.js?v=20261102-tap-clash-1"></script>
     <script src="./roulette.js?v=20261101-room-tools"></script>
     <script src="./rps.js?v=20261101-result-view"></script>
+    <script src="./bomb.js?v=20261102-bomb-circle-2"></script>
     <script src="./nunchi.js?v=20261102-nunchi-1"></script>
-    <script src="./app.js?v=20261102-nunchi-1"></script>
+    <script src="./app.js?v=20261102-tap-clash-1"></script>
     <script src="./game-outline.js?v=20261101-room-tools"></script>
   </body>
 </html>
